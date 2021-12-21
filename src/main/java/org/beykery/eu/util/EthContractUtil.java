@@ -378,7 +378,6 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node) throws ConnectException {
-//        Web3j web3j = Web3j.build(node.startsWith("http") ? new HttpService(node) : new WebSocketService(node, false));
         Web3j web3j;
         if (node.startsWith("ws")) {
             WebSocketService web3jService = new WebSocketService(node, false);
@@ -398,7 +397,6 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node, long pollingInterval) throws ConnectException {
-//        Web3j web3j = Web3j.build(node.startsWith("http") ? new HttpService(node) : new WebSocketService(node, false), pollingInterval, Async.defaultExecutorService());
         Web3j web3j;
         if (node.startsWith("ws")) {
             WebSocketService web3jService = new WebSocketService(node, false);
@@ -418,7 +416,6 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node, OkHttpClient okClient, long pollingInterval) throws ConnectException {
-//        Web3j web3j = Web3j.build(new HttpService(node, okClient), pollingInterval, Async.defaultExecutorService());
         Web3j web3j;
         if (node.startsWith("ws")) {
             WebSocketService web3jService = new WebSocketService(node, false);
