@@ -8,6 +8,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.web3j.protocol.Web3j;
 
+import java.net.ConnectException;
+
 @Slf4j
 public class TestSwap {
 
@@ -19,8 +21,9 @@ public class TestSwap {
     }
 
     @Test
-    void start() throws InterruptedException {
-        String node = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161";
+    void start() throws InterruptedException, ConnectException {
+//        String node = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161";
+        String node = "wss://mainnet.infura.io/ws/v3/9aa3d95b3bc440fa88ea12eaa4456161";
         Web3j web3j = EthContractUtil.getWeb3j(node);
         long from = -1;
         scanner.start(web3j, 15, from, null);
@@ -28,7 +31,7 @@ public class TestSwap {
     }
 
     @Test
-    void testHeco() throws InterruptedException {
+    void testHeco() throws InterruptedException, ConnectException {
         //String node = "https://http-mainnet.hecochain.com";
         //String node = "wss://pub001.hg.network/ws";
         String node = "https://pub001.hg.network/rpc";
@@ -39,10 +42,10 @@ public class TestSwap {
     }
 
     @Test
-    void testBsc() throws InterruptedException {
-        //String node = "https://bsc-dataseed.binance.org/";
+    void testBsc() throws InterruptedException, ConnectException {
+        String node = "https://bsc-dataseed.binance.org/";
         //String node = "wss://bsc-ws-node.nariox.org:443";
-        String node = "wss://speedy-nodes-nyc.moralis.io/1a2b3c4d5e6f1a2b3c4d5e6f/bsc/mainnet/ws";
+//        String node = "wss://speedy-nodes-nyc.moralis.io/1a2b3c4d5e6f1a2b3c4d5e6f/bsc/mainnet/ws";
         Web3j web3j = EthContractUtil.getWeb3j(node);
         long from = -1;
         scanner.start(web3j, 3, from, null);
