@@ -14,6 +14,7 @@ import org.web3j.protocol.core.*;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.*;
 import org.web3j.protocol.http.HttpService;
+import org.web3j.protocol.websocket.WebSocketService;
 import org.web3j.rlp.RlpEncoder;
 import org.web3j.rlp.RlpList;
 import org.web3j.rlp.RlpString;
@@ -376,7 +377,7 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node) {
-        Web3j web3j = Web3j.build(new HttpService(node));
+        Web3j web3j = Web3j.build(node.startsWith("http") ? new HttpService(node) : new WebSocketService(node, false));
         return web3j;
     }
 
@@ -388,7 +389,7 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node, long pollingInterval) {
-        Web3j web3j = Web3j.build(new HttpService(node), pollingInterval, Async.defaultExecutorService());
+        Web3j web3j = Web3j.build(node.startsWith("http") ? new HttpService(node) : new WebSocketService(node, false), pollingInterval, Async.defaultExecutorService());
         return web3j;
     }
 

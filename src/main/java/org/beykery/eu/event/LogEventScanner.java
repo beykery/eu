@@ -6,11 +6,9 @@ import org.web3j.abi.EventValues;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.EthFilter;
-import org.web3j.protocol.core.methods.response.EthBlockNumber;
-import org.web3j.protocol.core.methods.response.EthChainId;
-import org.web3j.protocol.core.methods.response.EthLog;
-import org.web3j.protocol.core.methods.response.Log;
+import org.web3j.protocol.core.methods.response.*;
 import org.web3j.tx.Contract;
 
 import java.io.IOException;
@@ -60,12 +58,28 @@ public class LogEventScanner implements Runnable {
     private List<String> contracts;
 
     /**
+     * 出块间隔
+     */
+    private long blockInterval;
+
+    /**
+     * 当前高
+     */
+    private long current;
+
+    /**
+     * 当前高度的时间
+     */
+    private long currentTime;
+
+    /**
      * init
      *
      * @param web3j
      */
-    public LogEventScanner(Web3j web3j, LogEventListener listener) {
+    public LogEventScanner(Web3j web3j, long blockInterval, LogEventListener listener) {
         this.web3j = web3j;
+        this.blockInterval = blockInterval;
         this.listener = listener;
     }
 
@@ -134,11 +148,10 @@ public class LogEventScanner implements Runnable {
      */
     @Override
     public void run() {
-        long delta = 0;  // 预防叔块
-        long current = 0; // 当前块高
         try {
-            EthBlockNumber n = web3j.ethBlockNumber().send();
-            current = n.getBlockNumber().longValue() - delta;
+            EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
+            current = block.getBlock().getNumber().longValue();
+            currentTime = block.getBlock().getTimestamp().longValue();
         } catch (Exception ex) {
             scanning = false;
             throw new RuntimeException(ex);
@@ -148,6 +161,7 @@ public class LogEventScanner implements Runnable {
             String encodedEventSignature = getTopic(item);
             signatures.put(encodedEventSignature, item);
         });
+        from = from < 0 ? current : from; // from
         long step = 1;    // 步长
         long f = from;    // 起始位置
         while (scanning) {
@@ -217,22 +231,49 @@ public class LogEventScanner implements Runnable {
                     long rate = 60;
                     step = logSize > 0 ? ((step * targetSize / logSize) * rate + step * (100 - rate)) / 100 : step + 1;
                     step = step < 1 ? 1 : (Math.min(step, maxStep));
-                } else {
+                }
+                // reach 't' height
+                else {
                     log.debug("reach the highest block {}", t);
                     step = 1;
                     listener.onReachHighest(t);
-                    current = web3j.ethBlockNumber().send().getBlockNumber().longValue() - delta;
-                    Thread.sleep(5 * 1000);
+                    long next = currentTime + blockInterval;
+                    long delta = next * 1000 - System.currentTimeMillis();
+                    if (delta > 0) {
+                        log.debug("sleep for the next filter with {} milliseconds", delta);
+                        Thread.sleep(delta);
+                    }
+                    EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
+                    current = block.getBlock().getNumber().longValue();
+                    currentTime = block.getBlock().getTimestamp().longValue();
                 }
             } catch (Exception ex) {
                 log.error("error with event fetch ", ex);
                 step = 1;
                 try {
-                    Thread.sleep(5 * 1000);
+                    Thread.sleep(3 * 1000);
                 } catch (Exception e) {
                     log.error("sleep error ", e);
                 }
             }
         }
+    }
+
+    /**
+     * 当前块高
+     *
+     * @return
+     */
+    public long getCurrent() {
+        return current;
+    }
+
+    /**
+     * 当前块高时间
+     *
+     * @return
+     */
+    public long getCurrentTime() {
+        return currentTime;
     }
 }

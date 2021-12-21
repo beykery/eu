@@ -66,10 +66,10 @@ public abstract class EnsScanner implements LogEventListener {
     /**
      * 开始爬取
      */
-    public boolean start(Web3j web3j, long from) {
+    public boolean start(Web3j web3j, long blockInterval, long from) {
         if (scanner == null) {
             this.from = Math.max(from, ENS_TOKEN_MIN_HEIGHT);
-            scanner = new LogEventScanner(web3j, this);
+            scanner = new LogEventScanner(web3j, blockInterval, this);
             return scanner.start(this.from, Arrays.asList(event), Arrays.asList(contract));
         }
         return false;

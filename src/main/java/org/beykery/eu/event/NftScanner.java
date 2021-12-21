@@ -49,11 +49,11 @@ public abstract class NftScanner implements LogEventListener {
     /**
      * 开始爬取
      */
-    public boolean start(Web3j web3j, long from, String... contracts) {
+    public boolean start(Web3j web3j, long blockInterval, long from, String... contracts) {
         if (scanner == null) {
             this.from = Math.max(from, LogEventScanner.MIN_ETH_MAINNET_NFT_MINT_HEIGHT);
             this.contracts = contracts;
-            scanner = new LogEventScanner(web3j, this);
+            scanner = new LogEventScanner(web3j, blockInterval, this);
             return scanner.start(this.from, Arrays.asList(TRANSFER_EVENT), contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts));
         }
         return false;
