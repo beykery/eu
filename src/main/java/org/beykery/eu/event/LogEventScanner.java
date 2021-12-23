@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * scan log event
@@ -188,37 +189,40 @@ public class LogEventScanner implements Runnable {
                         if (logs.size() > 0) {
                             logSize = logs.size();
                             // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
-                            logs.stream()
+                            if (listener.reverse()) {
+                                Collections.reverse(logs);
+                            }
+                            Stream<Log> stream = logs.stream()
                                     .filter(item -> {
                                         String topic = item.getTopics().get(0);
                                         int size = item.getTopics().size() - 1;
                                         Event event = signatures.get(topic);
                                         return size == event.getIndexedParameters().size();
-                                    })
-                                    .forEach(item -> {
-
-                                        String topic = item.getTopics().get(0);
-                                        Event event = signatures.get(topic);
-
-                                        String tx = item.getTransactionHash().toLowerCase();           // tx hash
-                                        BigInteger blockNumber = item.getBlockNumber();                // block number
-                                        BigInteger lidx = item.getLogIndex();                          // log index
-                                        String contractAddress = item.getAddress().toLowerCase();      // contract address
-
-                                        EventValues values = Contract.staticExtractEventParameters(event, item);
-
-                                        // 通知listener
-                                        LogEvent le = LogEvent.builder()
-                                                .event(event)
-                                                .transactionHash(tx)
-                                                .blockNumber(blockNumber.longValue())
-                                                .logIndex(lidx.longValue())
-                                                .contract(contractAddress)
-                                                .indexedValues(values.getIndexedValues())
-                                                .nonIndexedValues(values.getNonIndexedValues())
-                                                .build();
-                                        listener.onLogEvent(le);
                                     });
+                            stream.forEach(item -> {
+
+                                String topic = item.getTopics().get(0);
+                                Event event = signatures.get(topic);
+
+                                String tx = item.getTransactionHash().toLowerCase();           // tx hash
+                                BigInteger blockNumber = item.getBlockNumber();                // block number
+                                BigInteger lidx = item.getLogIndex();                          // log index
+                                String contractAddress = item.getAddress().toLowerCase();      // contract address
+
+                                EventValues values = Contract.staticExtractEventParameters(event, item);
+
+                                // 通知listener
+                                LogEvent le = LogEvent.builder()
+                                        .event(event)
+                                        .transactionHash(tx)
+                                        .blockNumber(blockNumber.longValue())
+                                        .logIndex(lidx.longValue())
+                                        .contract(contractAddress)
+                                        .indexedValues(values.getIndexedValues())
+                                        .nonIndexedValues(values.getNonIndexedValues())
+                                        .build();
+                                listener.onLogEvent(le);
+                            });
                         }
                     } else {
                         log.info("from {} to {} find {} events", f, t, 0);

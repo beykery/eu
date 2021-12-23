@@ -14,17 +14,17 @@ public abstract class BaseScanner implements LogEventListener {
     /**
      * contract
      */
-    private String[] contracts;
+    protected String[] contracts;
 
     /**
      * from
      */
-    private long from;
+    protected long from;
 
     /**
      * scan
      */
-    private LogEventScanner scanner;
+    protected LogEventScanner scanner;
 
     /**
      * 开始爬取

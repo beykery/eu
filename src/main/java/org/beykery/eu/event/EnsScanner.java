@@ -15,7 +15,7 @@ import java.util.Arrays;
  * ens scan
  */
 @Slf4j
-public abstract class EnsScanner implements LogEventListener {
+public abstract class EnsScanner extends BaseScanner {
 
     /**
      * registered event
@@ -53,42 +53,14 @@ public abstract class EnsScanner implements LogEventListener {
      */
 
     public static final long ENS_TOKEN_MIN_HEIGHT = 9380410L;
-    /**
-     * from
-     */
-    private long from;
 
-    /**
-     * scan
-     */
-    private LogEventScanner scanner;
 
     /**
      * 开始爬取
      */
     public boolean start(Web3j web3j, long blockInterval, long from) {
-        if (scanner == null) {
-            this.from = Math.max(from, ENS_TOKEN_MIN_HEIGHT);
-            scanner = new LogEventScanner(web3j, blockInterval, this);
-            return scanner.start(this.from, Arrays.asList(event), Arrays.asList(contract));
-        }
-        return false;
-    }
-
-    /**
-     * stop scan
-     */
-    public void stop() {
-        scanner.stop();
-    }
-
-    /**
-     * scanning
-     *
-     * @return
-     */
-    public boolean isScanning() {
-        return scanner != null && scanner.isScanning();
+        long f = Math.max(from, ENS_TOKEN_MIN_HEIGHT);
+        return super.start(web3j, blockInterval, Arrays.asList(event), f, contract);
     }
 
     /**

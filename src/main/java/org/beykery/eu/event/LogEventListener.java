@@ -27,4 +27,11 @@ public interface LogEventListener {
      * @param h
      */
     void onReachHighest(long h);
+
+    /**
+     * 事件顺序是否翻转
+     *
+     * @return
+     */
+    boolean reverse();
 }

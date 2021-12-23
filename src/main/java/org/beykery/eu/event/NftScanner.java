@@ -9,13 +9,12 @@ import org.web3j.protocol.Web3j;
 
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * nft scan
  */
 @Slf4j
-public abstract class NftScanner implements LogEventListener {
+public abstract class NftScanner extends BaseScanner {
 
     /**
      * transfer
@@ -32,47 +31,10 @@ public abstract class NftScanner implements LogEventListener {
     );
 
     /**
-     * contract
-     */
-    private String[] contracts;
-
-    /**
-     * from
-     */
-    private long from;
-
-    /**
-     * scan
-     */
-    private LogEventScanner scanner;
-
-    /**
      * 开始爬取
      */
     public boolean start(Web3j web3j, long blockInterval, long from, String... contracts) {
-        if (scanner == null) {
-            this.from = Math.max(from, LogEventScanner.MIN_ETH_MAINNET_NFT_MINT_HEIGHT);
-            this.contracts = contracts;
-            scanner = new LogEventScanner(web3j, blockInterval, this);
-            return scanner.start(this.from, Arrays.asList(TRANSFER_EVENT), contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts));
-        }
-        return false;
-    }
-
-    /**
-     * stop scan
-     */
-    public void stop() {
-        scanner.stop();
-    }
-
-    /**
-     * scanning
-     *
-     * @return
-     */
-    public boolean isScanning() {
-        return scanner != null && scanner.isScanning();
+        return super.start(web3j, blockInterval, Arrays.asList(TRANSFER_EVENT), from, contracts);
     }
 
     /**
