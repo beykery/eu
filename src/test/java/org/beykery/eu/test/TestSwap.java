@@ -26,7 +26,8 @@ public class TestSwap {
 //        String node = "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161";
         String node = "wss://mainnet.infura.io/ws/v3/9aa3d95b3bc440fa88ea12eaa4456161";
         Web3j web3j = EthContractUtil.getWeb3j(node);
-        long from = 13862733 - 1000;
+        //long from = 13862733 - 1000;
+        long from = -1;
         scanner.start(web3j, 15, from, null);
         Thread.sleep(1000 * 60 * 60);
     }
@@ -46,7 +47,9 @@ public class TestSwap {
     @Test
     void testBsc() throws InterruptedException, ConnectException {
         // String node = "https://bsc-dataseed.binance.org/";
-        String node = "wss://bsc-ws-node.nariox.org:443";
+        //String node = "wss://bsc-ws-node.nariox.org:443";
+//        String node = "https://bsc-dataseed4.ninicoin.io";
+        String node = "https://bsc-dataseed1.defibit.io";
         //String node = "wss://speedy-nodes-nyc.moralis.io/1a2b3c4d5e6f1a2b3c4d5e6f/bsc/mainnet/ws";
         Web3j web3j = EthContractUtil.getWeb3j(node);
         //long from = 13731524 - 10;
@@ -61,7 +64,7 @@ public class TestSwap {
         protected void onSwapEvents(List<SwapEvent> swapEvents) {
             long t = System.currentTimeMillis();
             swapEvents.forEach(item -> {
-                System.out.println(t - item.getBlockTimestamp() * 1000);
+                System.out.println(item);
             });
         }
 
