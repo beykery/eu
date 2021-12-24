@@ -10,6 +10,7 @@ import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Hash;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.Web3jService;
 import org.web3j.protocol.core.*;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.*;
@@ -342,10 +343,6 @@ public class EthContractUtil {
         return encodedFunction;
     }
 
-    public static void main(String... args) throws Exception {
-
-    }
-
     /**
      * byte32
      *
@@ -378,15 +375,7 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node) throws ConnectException {
-        Web3j web3j;
-        if (node.startsWith("ws")) {
-            WebSocketService web3jService = new WebSocketService(node, false);
-            web3jService.connect();
-            web3j = Web3j.build(web3jService);
-        } else {
-            web3j = Web3j.build(new HttpService(node));
-        }
-        return web3j;
+        return getWeb3j(node, 3);
     }
 
     /**
@@ -397,14 +386,14 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node, long pollingInterval) throws ConnectException {
-        Web3j web3j;
+        Web3jService ws;
         if (node.startsWith("ws")) {
-            WebSocketService web3jService = new WebSocketService(node, false);
-            web3jService.connect();
-            web3j = Web3j.build(web3jService, pollingInterval, Async.defaultExecutorService());
+            ws = new WebSocketService(node, false);
+            ((WebSocketService) ws).connect();
         } else {
-            web3j = Web3j.build(new HttpService(node), pollingInterval, Async.defaultExecutorService());
+            ws = new HttpService(node);
         }
+        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
         return web3j;
     }
 
@@ -416,14 +405,14 @@ public class EthContractUtil {
      * @return
      */
     public static Web3j getWeb3j(String node, OkHttpClient okClient, long pollingInterval) throws ConnectException {
-        Web3j web3j;
+        Web3jService ws;
         if (node.startsWith("ws")) {
-            WebSocketService web3jService = new WebSocketService(node, false);
-            web3jService.connect();
-            web3j = Web3j.build(web3jService, pollingInterval, Async.defaultExecutorService());
+            ws = new WebSocketService(node, false);
+            ((WebSocketService) ws).connect();
         } else {
-            web3j = Web3j.build(new HttpService(node, okClient), pollingInterval, Async.defaultExecutorService());
+            ws = new HttpService(node, okClient);
         }
+        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
         return web3j;
     }
 

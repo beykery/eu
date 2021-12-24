@@ -10,6 +10,8 @@ import org.web3j.protocol.Web3j;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * ens scan
@@ -68,32 +70,38 @@ public abstract class EnsScanner extends BaseScanner {
      *
      * @param registry
      */
-    protected abstract void onRegistryEvent(EnsRegistryEvent registry);
+    protected abstract void onRegistryEvents(List<EnsRegistryEvent> registry);
 
     /**
      * 发现事件
      *
-     * @param event
+     * @param events
      */
-    public void onLogEvent(LogEvent event) {
-        Bytes32 label = (Bytes32) event.getIndexedValues().get(0);                 // label == token id
-        Address owner = (Address) event.getIndexedValues().get(1);                 // owner
-        Utf8String name = (Utf8String) event.getNonIndexedValues().get(0);         // name
-        Uint256 cost = (Uint256) event.getNonIndexedValues().get(1);               // cost
-        Uint256 expires = (Uint256) event.getNonIndexedValues().get(2);            // expires
-        BigInteger tokenId = new BigInteger(1, label.getValue());          // token id
-        EnsRegistryEvent transfer = EnsRegistryEvent.builder()
-                .tokenId(tokenId)
-                .contract(event.getContract())
-                .creatorAddress(tokenAddress)
-                .ownerAddress(owner.getValue().toLowerCase())
-                .name(name.getValue())
-                .cost(cost.getValue())
-                .expires(expires.getValue().longValue())
-                .logIndex(event.getLogIndex())
-                .blockNumber(event.getBlockNumber())
-                .transactionHash(event.getTransactionHash())
-                .build();
-        onRegistryEvent(transfer);
+    @Override
+    public void onLogEvents(List<LogEvent> events) {
+        List<EnsRegistryEvent> ers = events.stream().map(event -> {
+            Bytes32 label = (Bytes32) event.getIndexedValues().get(0);                 // label == token id
+            Address owner = (Address) event.getIndexedValues().get(1);                 // owner
+            Utf8String name = (Utf8String) event.getNonIndexedValues().get(0);         // name
+            Uint256 cost = (Uint256) event.getNonIndexedValues().get(1);               // cost
+            Uint256 expires = (Uint256) event.getNonIndexedValues().get(2);            // expires
+            BigInteger tokenId = new BigInteger(1, label.getValue());          // token id
+            EnsRegistryEvent er = EnsRegistryEvent.builder()
+                    .tokenId(tokenId)
+                    .contract(event.getContract())
+                    .creatorAddress(tokenAddress)
+                    .ownerAddress(owner.getValue().toLowerCase())
+                    .name(name.getValue())
+                    .cost(cost.getValue())
+                    .expires(expires.getValue().longValue())
+                    .logIndex(event.getLogIndex())
+                    .blockNumber(event.getBlockNumber())
+                    .blockTimestamp(event.getBlockTimestamp())
+                    .transactionHash(event.getTransactionHash())
+                    .build();
+            return er;
+        }).collect(Collectors.toList());
+
+        this.onRegistryEvents(ers);
     }
 }

@@ -1,5 +1,7 @@
 package org.beykery.eu.event;
 
+import java.util.List;
+
 /**
  * listener for log event
  */
@@ -8,9 +10,9 @@ public interface LogEventListener {
     /**
      * 发现事件
      *
-     * @param event
+     * @param events
      */
-    void onLogEvent(LogEvent event);
+    void onLogEvents(List<LogEvent> events);
 
     /**
      * 扫描一段结束

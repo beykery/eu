@@ -21,6 +21,10 @@ public class SwapEvent {
      */
     private long blockNumber;
     /**
+     * 时间戳
+     */
+    private long blockTimestamp;
+    /**
      * log发生的index
      */
     private long logIndex;

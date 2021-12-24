@@ -9,6 +9,8 @@ import org.web3j.protocol.Web3j;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * nft scan
@@ -40,28 +42,33 @@ public abstract class NftScanner extends BaseScanner {
     /**
      * nft event
      *
-     * @param transfer
+     * @param events
      */
-    protected abstract void onTransferEvent(NftTransferEvent transfer);
+    protected abstract void onTransferEvents(List<NftTransferEvent> events);
 
     /**
      * 发现事件
      *
-     * @param event
+     * @param events
      */
-    public void onLogEvent(LogEvent event) {
-        Address fa = (Address) event.getIndexedValues().get(0);
-        Address ta = (Address) event.getIndexedValues().get(1);
-        BigInteger tokenId = ((Uint256) event.getIndexedValues().get(2)).getValue();
-        NftTransferEvent transfer = NftTransferEvent.builder()
-                .tokenId(tokenId)
-                .contract(event.getContract())
-                .toAddress(ta.getValue().toLowerCase())
-                .fromAddress(fa.getValue().toLowerCase())
-                .logIndex(event.getLogIndex())
-                .blockNumber(event.getBlockNumber())
-                .transactionHash(event.getTransactionHash())
-                .build();
-        onTransferEvent(transfer);
+    public void onLogEvents(List<LogEvent> events) {
+        List<NftTransferEvent> es = events.stream().map(event -> {
+            Address fa = (Address) event.getIndexedValues().get(0);
+            Address ta = (Address) event.getIndexedValues().get(1);
+            BigInteger tokenId = ((Uint256) event.getIndexedValues().get(2)).getValue();
+            NftTransferEvent transfer = NftTransferEvent.builder()
+                    .tokenId(tokenId)
+                    .contract(event.getContract())
+                    .toAddress(ta.getValue().toLowerCase())
+                    .fromAddress(fa.getValue().toLowerCase())
+                    .logIndex(event.getLogIndex())
+                    .blockNumber(event.getBlockNumber())
+                    .blockTimestamp(event.getBlockTimestamp())
+                    .transactionHash(event.getTransactionHash())
+                    .build();
+            return transfer;
+        }).collect(Collectors.toList());
+
+        this.onTransferEvents(es);
     }
 }

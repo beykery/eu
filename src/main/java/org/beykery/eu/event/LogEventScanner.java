@@ -189,9 +189,6 @@ public class LogEventScanner implements Runnable {
                         if (logs.size() > 0) {
                             logSize = logs.size();
                             // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
-                            if (listener.reverse()) {
-                                Collections.reverse(logs);
-                            }
                             Stream<Log> stream = logs.stream()
                                     .filter(item -> {
                                         String topic = item.getTopics().get(0);
@@ -199,8 +196,7 @@ public class LogEventScanner implements Runnable {
                                         Event event = signatures.get(topic);
                                         return size == event.getIndexedParameters().size();
                                     });
-                            stream.forEach(item -> {
-
+                            List<LogEvent> les = stream.map(item -> {
                                 String topic = item.getTopics().get(0);
                                 Event event = signatures.get(topic);
 
@@ -221,8 +217,17 @@ public class LogEventScanner implements Runnable {
                                         .indexedValues(values.getIndexedValues())
                                         .nonIndexedValues(values.getNonIndexedValues())
                                         .build();
-                                listener.onLogEvent(le);
-                            });
+                                if (le.getBlockNumber() == current) {
+                                    le.setBlockTimestamp(currentTime);
+                                }
+                                return le;
+                            }).collect(Collectors.toList());
+
+                            if (listener.reverse()) {
+                                Collections.reverse(les);
+                            }
+
+                            listener.onLogEvents(les);
                         }
                     } else {
                         log.info("from {} to {} find {} events", f, t, 0);

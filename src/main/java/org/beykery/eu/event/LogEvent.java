@@ -17,12 +17,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LogEvent {
-
     /**
      * log event
      */
     private Event event;
-
     /**
      * 交易hash
      */
@@ -31,6 +29,10 @@ public class LogEvent {
      * 高度
      */
     private long blockNumber;
+    /**
+     * 时间戳
+     */
+    private long blockTimestamp;
     /**
      * log发生的index
      */
