@@ -7,8 +7,7 @@ import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.*;
 import org.web3j.abi.datatypes.generated.Bytes32;
 import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.crypto.Hash;
-import org.web3j.crypto.Keys;
+import org.web3j.crypto.*;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jService;
 import org.web3j.protocol.core.*;
@@ -502,4 +501,135 @@ public class EthContractUtil {
     public static String toChecksumAddress(String address) {
         return Keys.toChecksumAddress(address);
     }
+
+    /**
+     * 签名交易
+     *
+     * @param privateKey 私钥
+     * @param price      gas price
+     * @param limit      gas limit
+     * @param to         合约地址或者外部地址
+     * @param value      转账的ht数额
+     * @param data       合约调用函数签名
+     * @return signed transaction
+     */
+    public static String signTransaction(String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, String data, BigInteger nonce) {
+        RawTransaction rawTransaction = rawTransaction(nonce, price, limit, to, value, data);
+        return signTransaction(privateKey, rawTransaction);
+    }
+
+    /**
+     * address for private key
+     *
+     * @param privateKey 私钥
+     * @return 地址
+     */
+    public static String address(String privateKey) {
+        Credentials credentials = Credentials.create(privateKey);
+        BigInteger number = credentials.getEcKeyPair().getPublicKey();
+        return Keys.toChecksumAddress(Keys.getAddress(number));
+    }
+
+    /**
+     * 组织一个raw transaction
+     *
+     * @param nonce nonce
+     * @param price gas价格
+     * @param limit gas limit
+     * @param to    合约或外部地址
+     * @param value 转账的ht数额
+     * @param data  消息（合约调用的方法签名）
+     * @return raw transaction
+     */
+    public static RawTransaction rawTransaction(BigInteger nonce, BigInteger price, BigInteger limit, String to, BigInteger value, String data) {
+        RawTransaction tr = RawTransaction.createTransaction(nonce, price, limit, to, value, data);
+        return tr;
+    }
+
+    /**
+     * 本地签名
+     *
+     * @param privateKey          私钥
+     * @param unsignedTransaction 待签名交易
+     * @return signed transaction
+     */
+    public static String signTransaction(String privateKey, RawTransaction unsignedTransaction) {
+        Credentials credentials = Credentials.create(privateKey);
+        byte[] signedMessage = TransactionEncoder.signMessage(unsignedTransaction, credentials);
+        String hexValue = Numeric.toHexString(signedMessage);
+        return hexValue;
+    }
+
+    /**
+     * nonce for address
+     *
+     * @param address 外部地址
+     * @return nonce
+     */
+    public BigInteger nonce(Web3j web3j, String address) {
+        try {
+            EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(address, DefaultBlockParameterName.PENDING).sendAsync().get();
+            BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+            return nonce;
+        } catch (InterruptedException | ExecutionException ex) {
+            return BigInteger.valueOf(-1);
+        }
+    }
+
+    /**
+     * 签名并发送交易
+     *
+     * @param privateKey 私钥
+     * @param price      gas price
+     * @param limit      gas limit
+     * @param to         合约或外部地址
+     * @param value      转账的ht数额
+     * @param data       调用合约方法签名
+     * @return
+     * @throws Exception
+     */
+    public EthSendTransaction signAndSendTransaction(Web3j web3j, String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, String data, BigInteger nonce) throws Exception {
+        String signedTransaction = signTransaction(privateKey, price, limit, to, value, data, nonce);
+        return sendSignedTransaction(web3j, signedTransaction);
+    }
+
+    /**
+     * send signed transaction
+     *
+     * @param signedTransaction signed transaction
+     * @return 结果（hash）
+     */
+    public static EthSendTransaction sendSignedTransaction(Web3j web3j, String signedTransaction) throws Exception {
+        final EthSendTransaction result = web3j.ethSendRawTransaction(signedTransaction).send();
+        return result;
+    }
+
+    /**
+     * encode function
+     *
+     * @param f
+     * @return
+     */
+    public static String encode(Function f) {
+        final String encode = FunctionEncoder.encode(f);
+        return encode;
+    }
+
+    /**
+     * sign function for contract
+     *
+     * @param privateKey
+     * @param price
+     * @param limit
+     * @param to
+     * @param value
+     * @param f
+     * @param nonce
+     * @return
+     */
+    public static String signTransaction(String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, Function f, BigInteger nonce) {
+        String data = encode(f);
+        return signTransaction(privateKey, price, limit, to, value, data, nonce);
+    }
+
 }
