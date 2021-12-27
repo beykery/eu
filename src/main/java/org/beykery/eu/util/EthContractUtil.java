@@ -270,6 +270,17 @@ public class EthContractUtil {
     }
 
     /**
+     * chain id
+     *
+     * @param web3j
+     * @return
+     */
+    public static long chainId(Web3j web3j) throws IOException {
+        EthChainId ret = web3j.ethChainId().send();
+        return ret.getId();
+    }
+
+    /**
      * batch
      *
      * @param web3j
