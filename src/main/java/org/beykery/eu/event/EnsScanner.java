@@ -51,9 +51,8 @@ public abstract class EnsScanner extends BaseScanner {
     public static final String tokenAddress = "0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85";
 
     /**
-     * ens token min block number
+     * ens token min block number for eth
      */
-
     public static final long ENS_TOKEN_MIN_HEIGHT = 9380410L;
 
 
@@ -61,8 +60,21 @@ public abstract class EnsScanner extends BaseScanner {
      * 开始爬取
      */
     public boolean start(Web3j web3j, long blockInterval, long from) {
-        long f = Math.max(from, ENS_TOKEN_MIN_HEIGHT);
-        return super.start(web3j, blockInterval, Arrays.asList(event), f, contract);
+        return start(web3j, null, blockInterval, from);
+    }
+
+    /**
+     * start scanning
+     *
+     * @param web3j
+     * @param currentBlockProvider
+     * @param blockInterval
+     * @param from
+     * @return
+     */
+    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, long from) {
+        from = Math.max(from, ENS_TOKEN_MIN_HEIGHT);
+        return super.start(web3j, currentBlockProvider, blockInterval, Arrays.asList(event), from, contract);
     }
 
     /**

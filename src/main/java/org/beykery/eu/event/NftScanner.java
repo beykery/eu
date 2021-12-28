@@ -36,7 +36,21 @@ public abstract class NftScanner extends BaseScanner {
      * 开始爬取
      */
     public boolean start(Web3j web3j, long blockInterval, long from, String... contracts) {
-        return super.start(web3j, blockInterval, Arrays.asList(TRANSFER_EVENT), from, contracts);
+        return start(web3j, null, blockInterval, from, contracts);
+    }
+
+    /**
+     * start scanning
+     *
+     * @param web3j
+     * @param currentBlockProvider
+     * @param blockInterval
+     * @param from
+     * @param contracts
+     * @return
+     */
+    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, long from, String... contracts) {
+        return super.start(web3j, currentBlockProvider, blockInterval, Arrays.asList(TRANSFER_EVENT), from, contracts);
     }
 
     /**

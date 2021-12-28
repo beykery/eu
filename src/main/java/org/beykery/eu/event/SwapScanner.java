@@ -76,7 +76,21 @@ public abstract class SwapScanner extends BaseScanner {
      * @return
      */
     public boolean start(Web3j web3j, long blockInterval, long from, String... contracts) {
-        return start(web3j, blockInterval, Arrays.asList(SWAP_EVENT), from, contracts);
+        return start(web3j, null, blockInterval, from, contracts);
+    }
+
+    /**
+     * start scan event for swap
+     *
+     * @param web3j
+     * @param currentBlockProvider
+     * @param blockInterval
+     * @param from
+     * @param contracts
+     * @return
+     */
+    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, long from, String... contracts) {
+        return start(web3j, currentBlockProvider, blockInterval, Arrays.asList(SWAP_EVENT), from, contracts);
     }
 
     @Override

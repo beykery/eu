@@ -74,6 +74,11 @@ public class LogEventScanner implements Runnable {
     private long currentTime;
 
     /**
+     * 块高提供者
+     */
+    private CurrentBlockProvider currentBlockProvider;
+
+    /**
      * init
      *
      * @param web3j
@@ -88,6 +93,28 @@ public class LogEventScanner implements Runnable {
      * 开始爬取
      */
     public boolean start(long from, List<Event> events, List<String> contracts) {
+        return start(from, events, contracts, null);
+    }
+
+    /**
+     * 爬取
+     *
+     * @param from
+     * @param events
+     * @param contracts
+     * @param currentBlockProvider
+     * @return
+     */
+    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider) {
+        if (currentBlockProvider == null) {
+            currentBlockProvider = () -> {
+                EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
+                long current = block.getBlock().getNumber().longValue();
+                long currentTime = block.getBlock().getTimestamp().longValue();
+                return new long[]{current, currentTime};
+            };
+        }
+        this.currentBlockProvider = currentBlockProvider;
         if (!scanning) {
             scanning = true;
             this.events = events;
@@ -150,9 +177,9 @@ public class LogEventScanner implements Runnable {
     @Override
     public void run() {
         try {
-            EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
-            current = block.getBlock().getNumber().longValue();
-            currentTime = block.getBlock().getTimestamp().longValue();
+            long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
+            current = c[0];
+            currentTime = c[1];
         } catch (Exception ex) {
             scanning = false;
             throw new RuntimeException(ex);
@@ -252,9 +279,9 @@ public class LogEventScanner implements Runnable {
                         log.debug("sleep for the next filter with {} milliseconds", delta);
                         Thread.sleep(delta);
                     }
-                    EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
-                    current = block.getBlock().getNumber().longValue();
-                    currentTime = block.getBlock().getTimestamp().longValue();
+                    long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
+                    current = c[0];
+                    currentTime = c[1];
                 }
             } catch (Exception ex) {
                 log.error("error with event fetch ", ex);
