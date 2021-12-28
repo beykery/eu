@@ -185,7 +185,7 @@ public class LogEventScanner implements Runnable {
                             Log log = lo.get();
                             return log;
                         }).filter(Objects::nonNull).collect(Collectors.toList());
-                        log.info("from {} to {} find {} events with step {}", f, t, logs.size(), step);
+                        log.debug("from {} to {} find {} events with step {}", f, t, logs.size(), step);
                         if (logs.size() > 0) {
                             logSize = logs.size();
                             // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
@@ -230,7 +230,7 @@ public class LogEventScanner implements Runnable {
                             listener.onLogEvents(les);
                         }
                     } else {
-                        log.info("from {} to {} find {} events", f, t, 0);
+                        log.debug("from {} to {} find {} events", f, t, 0);
                     }
                     listener.onOnceScanOver(f, t, logSize);
                     f = t + 1;  // to the next loop
