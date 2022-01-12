@@ -70,4 +70,12 @@ public abstract class BaseScanner implements LogEventListener {
         return scanner != null && scanner.isScanning();
     }
 
+    /**
+     * the inner scanner
+     *
+     * @return
+     */
+    public LogEventScanner getScanner() {
+        return this.scanner;
+    }
 }
