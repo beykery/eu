@@ -605,8 +605,20 @@ public class EthContractUtil {
      * @return nonce
      */
     public static BigInteger nonce(Web3j web3j, String address) {
+        return nonce(web3j, address, DefaultBlockParameterName.LATEST);
+    }
+
+    /**
+     * nonce of address
+     *
+     * @param web3j
+     * @param address
+     * @param param
+     * @return
+     */
+    public static BigInteger nonce(Web3j web3j, String address, DefaultBlockParameterName param) {
         try {
-            EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(address, DefaultBlockParameterName.PENDING).sendAsync().get();
+            EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(address, param).sendAsync().get();
             BigInteger nonce = ethGetTransactionCount.getTransactionCount();
             return nonce;
         } catch (InterruptedException | ExecutionException ex) {
