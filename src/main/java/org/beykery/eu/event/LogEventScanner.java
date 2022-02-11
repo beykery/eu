@@ -189,6 +189,8 @@ public class LogEventScanner implements Runnable {
             String encodedEventSignature = getTopic(item);
             signatures.put(encodedEventSignature, item);
         });
+        final long minInterval = 1000 * blockInterval / 3; // 最小间隔
+        long latest = 0;
         from = from < 0 ? current : from; // from
         long step = 1;    // 步长
         long f = from;    // 起始位置
@@ -279,6 +281,11 @@ public class LogEventScanner implements Runnable {
                         log.debug("sleep for the next filter with {} milliseconds", delta);
                         Thread.sleep(delta);
                     }
+                    long now = System.currentTimeMillis();
+                    if (latest > 0 && now - latest < minInterval) {
+                        Thread.sleep(minInterval - now + latest);
+                    }
+                    latest = now;
                     long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
                     current = c[0];
                     currentTime = c[1];
