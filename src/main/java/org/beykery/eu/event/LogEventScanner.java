@@ -64,6 +64,11 @@ public class LogEventScanner implements Runnable {
     private long blockInterval;
 
     /**
+     * 最新块的最小获取间隔
+     */
+    private long minInterval;
+
+    /**
      * 当前高
      */
     private long current;
@@ -106,6 +111,20 @@ public class LogEventScanner implements Runnable {
      * @return
      */
     public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider) {
+        return start(from, events, contracts, currentBlockProvider, 0);
+    }
+
+    /**
+     * 开始爬取
+     *
+     * @param from
+     * @param events
+     * @param contracts
+     * @param currentBlockProvider
+     * @param minInterval
+     * @return
+     */
+    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval) {
         if (currentBlockProvider == null) {
             currentBlockProvider = () -> {
                 EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
@@ -120,6 +139,7 @@ public class LogEventScanner implements Runnable {
             this.events = events;
             this.from = from;
             this.contracts = contracts;
+            this.minInterval = minInterval;
             Thread thread = new Thread(this);
             thread.start();
         }
@@ -189,7 +209,7 @@ public class LogEventScanner implements Runnable {
             String encodedEventSignature = getTopic(item);
             signatures.put(encodedEventSignature, item);
         });
-        final long minInterval = 1000 * blockInterval / 3; // 最小间隔
+        final long minInterval = this.minInterval == 0 ? 1000 * blockInterval / 3 : this.minInterval; // 最小间隔
         long latest = 0;
         from = from < 0 ? current : from; // from
         long step = 1;    // 步长
@@ -285,10 +305,10 @@ public class LogEventScanner implements Runnable {
                     if (latest > 0 && now - latest < minInterval) {
                         Thread.sleep(minInterval - now + latest);
                     }
-                    latest = now;
                     long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
                     current = c[0];
                     currentTime = c[1];
+                    latest = System.currentTimeMillis();
                 }
             } catch (Exception ex) {
                 log.error("error with event fetch ", ex);

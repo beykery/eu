@@ -401,7 +401,7 @@ public class EthContractUtil {
             ws = new WebSocketService(node, false);
             ((WebSocketService) ws).connect();
         } else {
-            ws = new HttpService(node);
+            ws = new EuHttpService(node);
         }
         Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
         return web3j;
@@ -420,7 +420,7 @@ public class EthContractUtil {
             ws = new WebSocketService(node, false);
             ((WebSocketService) ws).connect();
         } else {
-            ws = new HttpService(node, okClient);
+            ws = new EuHttpService(node, okClient);
         }
         Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
         return web3j;
