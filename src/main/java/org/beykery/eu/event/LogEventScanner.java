@@ -84,6 +84,16 @@ public class LogEventScanner implements Runnable {
     private CurrentBlockProvider currentBlockProvider;
 
     /**
+     * 统计平均出块间隔，计算滑动平均值
+     */
+    private long averageBlockInterval;
+
+    /**
+     * 敏感因子，新块间隔在均值里的比重
+     */
+    private double sensitivity;
+
+    /**
      * init
      *
      * @param web3j
@@ -125,6 +135,21 @@ public class LogEventScanner implements Runnable {
      * @return
      */
     public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval) {
+        return start(from, events, contracts, currentBlockProvider, minInterval, 0);
+    }
+
+    /**
+     * 开始爬取
+     *
+     * @param from
+     * @param events
+     * @param contracts
+     * @param currentBlockProvider
+     * @param minInterval
+     * @param sensitivity
+     * @return
+     */
+    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval, double sensitivity) {
         if (currentBlockProvider == null) {
             currentBlockProvider = () -> {
                 EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
@@ -134,6 +159,8 @@ public class LogEventScanner implements Runnable {
             };
         }
         this.currentBlockProvider = currentBlockProvider;
+        this.sensitivity = sensitivity <= 0 || sensitivity >= 1 ? 1.0 / 4 : sensitivity;
+        this.averageBlockInterval = blockInterval;
         if (!scanning) {
             scanning = true;
             this.events = events;
@@ -306,6 +333,9 @@ public class LogEventScanner implements Runnable {
                         Thread.sleep(minInterval - now + latest);
                     }
                     long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
+                    if (c[0] == current + 1) {
+                        this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + (c[1] - currentTime) * sensitivity);
+                    }
                     current = c[0];
                     currentTime = c[1];
                     latest = System.currentTimeMillis();
@@ -338,5 +368,14 @@ public class LogEventScanner implements Runnable {
      */
     public long getCurrentTime() {
         return currentTime;
+    }
+
+    /**
+     * 平均出块间隔
+     *
+     * @return
+     */
+    public long getAverageBlockInterval() {
+        return averageBlockInterval;
     }
 }
