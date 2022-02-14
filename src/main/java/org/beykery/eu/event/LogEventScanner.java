@@ -59,12 +59,12 @@ public class LogEventScanner implements Runnable {
     private List<String> contracts;
 
     /**
-     * 出块间隔
+     * 出块间隔(second)
      */
     private long blockInterval;
 
     /**
-     * 最新块的最小获取间隔
+     * 最新块的最小获取间隔(ms)
      */
     private long minInterval;
 
@@ -84,7 +84,7 @@ public class LogEventScanner implements Runnable {
     private CurrentBlockProvider currentBlockProvider;
 
     /**
-     * 统计平均出块间隔，计算滑动平均值
+     * 统计平均出块间隔，计算滑动平均值(ms)
      */
     private long averageBlockInterval;
 
@@ -160,7 +160,7 @@ public class LogEventScanner implements Runnable {
         }
         this.currentBlockProvider = currentBlockProvider;
         this.sensitivity = sensitivity <= 0 || sensitivity >= 1 ? 1.0 / 4 : sensitivity;
-        this.averageBlockInterval = blockInterval;
+        this.averageBlockInterval = blockInterval * 1000;
         if (!scanning) {
             scanning = true;
             this.events = events;
@@ -334,7 +334,7 @@ public class LogEventScanner implements Runnable {
                     }
                     long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
                     if (c[0] == current + 1) {
-                        this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + (c[1] - currentTime) * sensitivity);
+                        this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + (c[1] - currentTime) * 1000 * sensitivity);
                     }
                     current = c[0];
                     currentTime = c[1];
