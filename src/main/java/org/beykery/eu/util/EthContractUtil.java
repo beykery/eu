@@ -103,7 +103,13 @@ public class EthContractUtil {
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    public static List<Type> call(Web3j web3j, String contractAddress, String funname, List<Type> inputs, List<TypeReference<?>> outputs) throws Exception {
+    public static List<Type> call(
+            Web3j web3j,
+            String contractAddress,
+            String funname,
+            List<Type> inputs,
+            List<TypeReference<?>> outputs
+    ) throws Exception {
         Function function = new Function(funname, inputs, outputs);
         return call(web3j, function, contractAddress);
     }
@@ -361,7 +367,7 @@ public class EthContractUtil {
      */
     public static Bytes32 formatBytes32String(String t) {
         byte[] temp = t.getBytes();
-        int len = temp.length > 32 ? 32 : temp.length;
+        int len = Math.min(temp.length, 32);
         byte[] target = new byte[32];
         System.arraycopy(temp, 0, target, 0, len);
         return new Bytes32(target);
@@ -524,7 +530,16 @@ public class EthContractUtil {
      * @param data       合约调用函数签名
      * @return signed transaction
      */
-    public static String signTransaction(String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, String data, BigInteger nonce, long chainId) {
+    public static String signTransaction(
+            String privateKey,
+            BigInteger price,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            String data,
+            BigInteger nonce,
+            long chainId
+    ) {
         RawTransaction rawTransaction = rawTransaction(nonce, price, limit, to, value, data);
         return signTransaction(privateKey, rawTransaction, chainId);
     }
@@ -541,7 +556,15 @@ public class EthContractUtil {
      * @param nonce
      * @return
      */
-    public static String signTransaction(String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, String data, BigInteger nonce) {
+    public static String signTransaction(
+            String privateKey,
+            BigInteger price,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            String data,
+            BigInteger nonce
+    ) {
         return signTransaction(privateKey, price, limit, to, value, data, nonce, 0);
     }
 
@@ -568,8 +591,40 @@ public class EthContractUtil {
      * @param data  消息（合约调用的方法签名）
      * @return raw transaction
      */
-    public static RawTransaction rawTransaction(BigInteger nonce, BigInteger price, BigInteger limit, String to, BigInteger value, String data) {
+    public static RawTransaction rawTransaction(
+            BigInteger nonce,
+            BigInteger price,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            String data
+    ) {
         RawTransaction tr = RawTransaction.createTransaction(nonce, price, limit, to, value, data);
+        return tr;
+    }
+
+    /**
+     * 组织一个raw transaction
+     * eip1559
+     *
+     * @param nonce
+     * @param limit
+     * @param to
+     * @param value
+     * @param data
+     * @return
+     */
+    public static RawTransaction rawTransaction(
+            long chainId,
+            BigInteger nonce,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            String data,
+            BigInteger maxPriorityFeePerGas,
+            BigInteger maxFeePerGas
+    ) {
+        RawTransaction tr = RawTransaction.createTransaction(chainId, nonce, limit, to, value, data, maxPriorityFeePerGas, maxFeePerGas);
         return tr;
     }
 
@@ -638,7 +693,17 @@ public class EthContractUtil {
      * @return
      * @throws Exception
      */
-    public static EthSendTransaction signAndSendTransaction(Web3j web3j, String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, String data, BigInteger nonce, long chainId) throws Exception {
+    public static EthSendTransaction signAndSendTransaction(
+            Web3j web3j,
+            String privateKey,
+            BigInteger price,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            String data,
+            BigInteger nonce,
+            long chainId
+    ) throws Exception {
         String signedTransaction = signTransaction(privateKey, price, limit, to, value, data, nonce, chainId);
         return sendSignedTransaction(web3j, signedTransaction);
     }
@@ -657,7 +722,16 @@ public class EthContractUtil {
      * @return
      * @throws Exception
      */
-    public static EthSendTransaction signAndSendTransaction(Web3j web3j, String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, String data, BigInteger nonce) throws Exception {
+    public static EthSendTransaction signAndSendTransaction(
+            Web3j web3j,
+            String privateKey,
+            BigInteger price,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            String data,
+            BigInteger nonce
+    ) throws Exception {
         return signAndSendTransaction(web3j, privateKey, price, limit, to, value, data, nonce, 0);
     }
 
@@ -695,7 +769,16 @@ public class EthContractUtil {
      * @param nonce
      * @return
      */
-    public static String signTransaction(String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, Function f, BigInteger nonce, long chainId) {
+    public static String signTransaction(
+            String privateKey,
+            BigInteger price,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            Function f,
+            BigInteger nonce,
+            long chainId
+    ) {
         String data = encode(f);
         return signTransaction(privateKey, price, limit, to, value, data, nonce, chainId);
     }
@@ -712,7 +795,15 @@ public class EthContractUtil {
      * @param nonce
      * @return
      */
-    public static String signTransaction(String privateKey, BigInteger price, BigInteger limit, String to, BigInteger value, Function f, BigInteger nonce) {
+    public static String signTransaction(
+            String privateKey,
+            BigInteger price,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            Function f,
+            BigInteger nonce
+    ) {
         return signTransaction(privateKey, price, limit, to, value, f, nonce, 0);
     }
 }
