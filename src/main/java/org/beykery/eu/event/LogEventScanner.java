@@ -94,6 +94,11 @@ public class LogEventScanner implements Runnable {
     private double sensitivity;
 
     /**
+     * 固定步长
+     */
+    private long step;
+
+    /**
      * init
      *
      * @param web3j
@@ -150,6 +155,37 @@ public class LogEventScanner implements Runnable {
      * @return
      */
     public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval, double sensitivity) {
+        return start(from, events, contracts, currentBlockProvider, minInterval, sensitivity, step);
+    }
+
+    /**
+     * start
+     *
+     * @param from
+     * @param events
+     * @param contracts
+     * @param currentBlockProvider
+     * @param minInterval
+     * @param step
+     * @return
+     */
+    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval, long step) {
+        return start(from, events, contracts, currentBlockProvider, minInterval, 0, step);
+    }
+
+    /**
+     * start
+     *
+     * @param from
+     * @param events
+     * @param contracts
+     * @param currentBlockProvider
+     * @param minInterval
+     * @param sensitivity
+     * @param step
+     * @return
+     */
+    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval, double sensitivity, long step) {
         if (currentBlockProvider == null) {
             currentBlockProvider = () -> {
                 EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
@@ -165,6 +201,7 @@ public class LogEventScanner implements Runnable {
             scanning = true;
             this.events = events;
             this.from = from;
+            this.step = step;
             this.contracts = contracts;
             this.minInterval = minInterval;
             Thread thread = new Thread(this);
@@ -243,6 +280,9 @@ public class LogEventScanner implements Runnable {
         long f = from;    // 起始位置
         while (scanning) {
             try {
+                if (this.step > 0) {
+                    step = this.step;
+                }
                 long t = Math.min(f + step - 1, current);
                 if (f <= t) {
                     EthFilter filter = new EthFilter(
