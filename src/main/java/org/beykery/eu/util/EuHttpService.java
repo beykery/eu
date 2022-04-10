@@ -14,6 +14,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.SecureRandom;
 import java.util.*;
 
 import static okhttp3.ConnectionSpec.CLEARTEXT;
@@ -26,7 +27,7 @@ public class EuHttpService extends Service {
     /**
      * 随机
      */
-    private static final Random random = new Random();
+    private static final Random random = new SecureRandom();
 
     /**
      * Copied from {@link ConnectionSpec#APPROVED_CIPHER_SUITES}.
