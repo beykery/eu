@@ -34,6 +34,7 @@ public class TestSync {
                     long time = e.getBlockTimestamp();
                     long delta = System.currentTimeMillis() - time*1000;
                     System.out.println(delta);
+                    System.out.println(block);
 //                    System.out.println(this.getScanner().getCurrent() + " : " + block);
                 }
             }
