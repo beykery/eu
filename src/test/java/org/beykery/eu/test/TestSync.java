@@ -32,9 +32,13 @@ public class TestSync {
                 for (LogEvent e : events) {
                     long block = e.getBlockNumber();
                     long time = e.getBlockTimestamp();
-                    long delta = System.currentTimeMillis() - time*1000;
+                    long delta = System.currentTimeMillis() - time * 1000;
                     System.out.println(delta);
                     System.out.println(block);
+                    Uint112 r0 = (Uint112) e.getNonIndexedValues().get(0);
+                    Uint112 r1 = (Uint112) e.getNonIndexedValues().get(1);
+                    String pairAddress = e.getContract();
+                    System.out.println(pairAddress + " : " + r0.getValue() + " : " + r1.getValue());
 //                    System.out.println(this.getScanner().getCurrent() + " : " + block);
                 }
             }
@@ -66,7 +70,7 @@ public class TestSync {
 //            long latency = System.currentTimeMillis() - ret[1] * 1000;
 //            System.out.println("latency : " + latency);
             return ret;
-        }, 6, Arrays.asList(SYNC_EVENT), -1, 2000, 0, 1, null);
+        }, 6, Arrays.asList(SYNC_EVENT), -1, 300, 0, 1, null);
         Thread.sleep(24 * 3600 * 1000);
     }
 }
