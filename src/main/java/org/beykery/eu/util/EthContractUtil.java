@@ -265,6 +265,17 @@ public class EthContractUtil {
     }
 
     /**
+     * number with decimals
+     *
+     * @param v
+     * @param decimals
+     * @return
+     */
+    public static double numberWithDecimals(BigInteger v, int decimals) {
+        return numberWithDecimals(v, decimals, 0);
+    }
+
+    /**
      * @param v         value
      * @param decimals  小数位数
      * @param precision 放大次数
