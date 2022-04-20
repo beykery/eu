@@ -99,6 +99,16 @@ public class LogEventScanner implements Runnable {
     private long step;
 
     /**
+     * 最多重试次数
+     */
+    private int maxRetry;
+
+    /**
+     * retry sleep (ms)
+     */
+    private long retryInterval;
+
+    /**
      * init
      *
      * @param web3j
@@ -107,6 +117,14 @@ public class LogEventScanner implements Runnable {
         this.web3j = web3j;
         this.blockInterval = blockInterval;
         this.listener = listener;
+    }
+
+    public LogEventScanner(Web3j web3j, long blockInterval, int maxRetry, long retryInterval, LogEventListener listener) {
+        this.web3j = web3j;
+        this.blockInterval = blockInterval;
+        this.listener = listener;
+        this.maxRetry = maxRetry;
+        this.retryInterval = retryInterval;
     }
 
     /**
@@ -287,13 +305,19 @@ public class LogEventScanner implements Runnable {
                 EthFilter filter = new EthFilter(
                         DefaultBlockParameter.valueOf(BigInteger.valueOf(f)),
                         DefaultBlockParameter.valueOf(BigInteger.valueOf(t)),
-                        (contracts == null || contracts.size() <= 0) ? Collections.EMPTY_LIST : contracts
+                        contracts == null ? Collections.EMPTY_LIST : contracts
                 );
                 Set<String> topics = signatures.keySet();
                 filter.addOptionalTopics(topics.toArray(new String[0]));
                 EthLog el;
                 try {
+                    int retry = 0;
                     el = web3j.ethGetLogs(filter).send();
+                    while (retry < this.maxRetry && (el == null || el.getLogs().isEmpty())) {
+                        Thread.sleep(this.retryInterval);
+                        el = web3j.ethGetLogs(filter).send();
+                        retry++;
+                    }
                 } catch (Exception ex) {
                     log.error("fetch logs failed with range {} - {} ", f, t);
                     step = 1;

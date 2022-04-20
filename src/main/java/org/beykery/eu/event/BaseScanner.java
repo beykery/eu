@@ -27,82 +27,11 @@ public abstract class BaseScanner implements LogEventListener {
     protected LogEventScanner scanner;
 
     /**
-     * 开始爬取
-     */
-    public boolean start(Web3j web3j, long blockInterval, List<Event> events, long from, String... contracts) {
-        return start(web3j, null, blockInterval, events, from, contracts);
-    }
-
-    /**
-     * 开始爬取
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval
-     * @param events
-     * @param from
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, String... contracts) {
-        return start(web3j, currentBlockProvider, blockInterval, events, from, 0, contracts);
-    }
-
-    /**
-     * 开始爬取
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, String... contracts) {
-        return start(web3j, currentBlockProvider, blockInterval, events, from, minInterval, 0, contracts);
-    }
-
-    /**
      * start
      *
      * @param web3j
      * @param currentBlockProvider
-     * @param blockInterval
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param step
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, long step, String... contracts) {
-        return start(web3j, currentBlockProvider, blockInterval, events, from, minInterval, 0, step, contracts);
-    }
-
-    /**
-     * 开始爬取
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, double sensitivity, String... contracts) {
-        return start(web3j, currentBlockProvider, blockInterval, events, from, minInterval, sensitivity, 0, contracts);
-    }
-
-    /**
-     * start
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval
+     * @param blockInterval        second
      * @param events
      * @param from
      * @param minInterval
@@ -112,10 +41,32 @@ public abstract class BaseScanner implements LogEventListener {
      * @return
      */
     public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, double sensitivity, long step, String... contracts) {
+        int maxRetry = 3;
+        long retryInterval = (long) (blockInterval * 1000.0 / 20);
+        return start(web3j, currentBlockProvider, blockInterval, events, from, minInterval, sensitivity, step, maxRetry, retryInterval, contracts);
+    }
+
+    /**
+     * 启动
+     *
+     * @param web3j
+     * @param currentBlockProvider
+     * @param blockInterval
+     * @param events
+     * @param from
+     * @param minInterval
+     * @param sensitivity
+     * @param step
+     * @param maxRetry
+     * @param retryInterval
+     * @param contracts
+     * @return
+     */
+    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, double sensitivity, long step, int maxRetry, long retryInterval, String... contracts) {
         if (scanner == null) {
             this.from = from;
             this.contracts = contracts;
-            scanner = new LogEventScanner(web3j, blockInterval, this);
+            scanner = new LogEventScanner(web3j, blockInterval, maxRetry, retryInterval, this);
             return scanner.start(this.from, events, contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, minInterval, sensitivity, step);
         }
         return false;
