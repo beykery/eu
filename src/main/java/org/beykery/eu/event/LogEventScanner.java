@@ -279,115 +279,126 @@ public class LogEventScanner implements Runnable {
         long step = 1;    // 步长
         long f = from;    // 起始位置
         while (scanning) {
-            try {
-                if (this.step > 0) {
-                    step = this.step;
-                }
-                long t = Math.min(f + step - 1, current);
-                if (f <= t) {
-                    EthFilter filter = new EthFilter(
-                            DefaultBlockParameter.valueOf(BigInteger.valueOf(f)),
-                            DefaultBlockParameter.valueOf(BigInteger.valueOf(t)),
-                            (contracts == null || contracts.size() <= 0) ? Collections.EMPTY_LIST : contracts
-                    );
-                    Set<String> topics = signatures.keySet();
-                    filter.addOptionalTopics(topics.toArray(new String[0]));
-                    EthLog el = web3j.ethGetLogs(filter).send();
-                    long logSize = 0;  // 用来调整步长
-                    List<EthLog.LogResult> lr = el == null ? Collections.EMPTY_LIST : el.getLogs();
-                    if (lr != null) {
-                        List<Log> logs = lr.stream().map(item -> {
-                            EthLog.LogObject lo = (EthLog.LogObject) item.get();
-                            Log log = lo.get();
-                            return log;
-                        }).filter(Objects::nonNull).collect(Collectors.toList());
-                        log.debug("from {} to {} find {} events with step {}", f, t, logs.size(), step);
-                        if (logs.size() > 0) {
-                            logSize = logs.size();
-                            // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
-                            Stream<Log> stream = logs.stream()
-                                    .filter(item -> {
-                                        String topic = item.getTopics().get(0);
-                                        int size = item.getTopics().size() - 1;
-                                        Event event = signatures.get(topic);
-                                        return size == event.getIndexedParameters().size();
-                                    });
-                            List<LogEvent> les = stream.map(item -> {
-                                String topic = item.getTopics().get(0);
-                                Event event = signatures.get(topic);
-
-                                String tx = item.getTransactionHash().toLowerCase();           // tx hash
-                                BigInteger blockNumber = item.getBlockNumber();                // block number
-                                BigInteger lidx = item.getLogIndex();                          // log index
-                                String contractAddress = item.getAddress().toLowerCase();      // contract address
-
-                                EventValues values = Contract.staticExtractEventParameters(event, item);
-
-                                // 通知listener
-                                LogEvent le = LogEvent.builder()
-                                        .event(event)
-                                        .transactionHash(tx)
-                                        .blockNumber(blockNumber.longValue())
-                                        .logIndex(lidx.longValue())
-                                        .contract(contractAddress)
-                                        .indexedValues(values.getIndexedValues())
-                                        .nonIndexedValues(values.getNonIndexedValues())
-                                        .build();
-                                if (le.getBlockNumber() == current) {
-                                    le.setBlockTimestamp(currentTime);
-                                }
-                                return le;
-                            }).collect(Collectors.toList());
-
-                            if (listener.reverse()) {
-                                Collections.reverse(les);
-                            }
-
-                            listener.onLogEvents(les);
-                        }
-                    } else {
-                        log.debug("from {} to {} find {} events", f, t, 0);
-                    }
-                    listener.onOnceScanOver(f, t, logSize);
-                    f = t + 1;  // to the next loop
-                    // step adjust
-                    long targetSize = 1024 * 4;
-                    long maxStep = 1024;
-                    long rate = 60;
-                    step = logSize > 0 ? ((step * targetSize / logSize) * rate + step * (100 - rate)) / 100 : step + 1;
-                    step = step < 1 ? 1 : (Math.min(step, maxStep));
-                }
-                // reach 't' height
-                else {
-                    log.debug("reach the highest block {}", t);
+            if (this.step > 0) {
+                step = this.step;
+            }
+            long t = Math.min(f + step - 1, current);
+            if (f <= t) {
+                EthFilter filter = new EthFilter(
+                        DefaultBlockParameter.valueOf(BigInteger.valueOf(f)),
+                        DefaultBlockParameter.valueOf(BigInteger.valueOf(t)),
+                        (contracts == null || contracts.size() <= 0) ? Collections.EMPTY_LIST : contracts
+                );
+                Set<String> topics = signatures.keySet();
+                filter.addOptionalTopics(topics.toArray(new String[0]));
+                EthLog el;
+                try {
+                    el = web3j.ethGetLogs(filter).send();
+                } catch (Exception ex) {
+                    log.error("fetch logs failed with range {} - {} ", f, t);
                     step = 1;
-                    listener.onReachHighest(t);
-                    long next = currentTime + blockInterval;
-                    long delta = next * 1000 - System.currentTimeMillis();
-                    if (delta > 0) {
-                        log.debug("sleep for the next filter with {} milliseconds", delta);
+                    try {
+                        Thread.sleep(2000);
+                    } catch (Exception x) {
+                    }
+                    continue;
+                }
+                long logSize = 0;  // 用来调整步长
+                List<EthLog.LogResult> lr = el == null ? Collections.EMPTY_LIST : el.getLogs();
+                if (lr != null) {
+                    List<Log> logs = lr.stream().map(item -> {
+                        EthLog.LogObject lo = (EthLog.LogObject) item.get();
+                        Log log = lo.get();
+                        return log;
+                    }).filter(Objects::nonNull).collect(Collectors.toList());
+                    log.debug("from {} to {} find {} events with step {}", f, t, logs.size(), step);
+                    if (logs.size() > 0) {
+                        logSize = logs.size();
+                        // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
+                        Stream<Log> stream = logs.stream()
+                                .filter(item -> {
+                                    String topic = item.getTopics().get(0);
+                                    int size = item.getTopics().size() - 1;
+                                    Event event = signatures.get(topic);
+                                    return size == event.getIndexedParameters().size();
+                                });
+                        List<LogEvent> les = stream.map(item -> {
+                            String topic = item.getTopics().get(0);
+                            Event event = signatures.get(topic);
+
+                            String tx = item.getTransactionHash().toLowerCase();           // tx hash
+                            BigInteger blockNumber = item.getBlockNumber();                // block number
+                            BigInteger lidx = item.getLogIndex();                          // log index
+                            String contractAddress = item.getAddress().toLowerCase();      // contract address
+
+                            EventValues values = Contract.staticExtractEventParameters(event, item);
+
+                            // 通知listener
+                            LogEvent le = LogEvent.builder()
+                                    .event(event)
+                                    .transactionHash(tx)
+                                    .blockNumber(blockNumber.longValue())
+                                    .logIndex(lidx.longValue())
+                                    .contract(contractAddress)
+                                    .indexedValues(values.getIndexedValues())
+                                    .nonIndexedValues(values.getNonIndexedValues())
+                                    .build();
+                            if (le.getBlockNumber() == current) {
+                                le.setBlockTimestamp(currentTime);
+                            }
+                            return le;
+                        }).collect(Collectors.toList());
+
+                        if (listener.reverse()) {
+                            Collections.reverse(les);
+                        }
+
+                        listener.onLogEvents(les);
+                    }
+                } else {
+                    log.debug("from {} to {} find {} events", f, t, 0);
+                }
+                listener.onOnceScanOver(f, t, logSize);
+                f = t + 1;  // to the next loop
+                // step adjust
+                long targetSize = 1024 * 4;
+                long maxStep = 1024;
+                long rate = 60;
+                step = logSize > 0 ? ((step * targetSize / logSize) * rate + step * (100 - rate)) / 100 : step + 1;
+                step = step < 1 ? 1 : (Math.min(step, maxStep));
+            }
+            // reach 't' height
+            else {
+                log.debug("reach the highest block {}", t);
+                step = 1;
+                listener.onReachHighest(t);
+                long next = currentTime + blockInterval;
+                long delta = next * 1000 - System.currentTimeMillis();
+                if (delta > 0) {
+                    log.debug("sleep for the next filter with {} milliseconds", delta);
+                    try {
                         Thread.sleep(delta);
+                    } catch (Exception x) {
                     }
-                    long now = System.currentTimeMillis();
-                    if (latest > 0 && now - latest < minInterval) {
+                }
+                long now = System.currentTimeMillis();
+                if (latest > 0 && now - latest < minInterval) {
+                    try {
                         Thread.sleep(minInterval - now + latest);
+                    } catch (Exception x) {
                     }
+                }
+                try {
                     long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
                     if (c[0] == current + 1) {
                         this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + (c[1] - currentTime) * 1000 * sensitivity);
                     }
                     current = c[0];
                     currentTime = c[1];
-                    latest = System.currentTimeMillis();
+                } catch (Exception ex) {
+                    log.error("fetch the current block number and timestamp failed");
                 }
-            } catch (Exception ex) {
-                log.error("error with event fetch ", ex);
-                step = 1;
-                try {
-                    Thread.sleep(3 * 1000);
-                } catch (Exception e) {
-                    log.error("sleep error ", e);
-                }
+                latest = System.currentTimeMillis();
             }
         }
     }

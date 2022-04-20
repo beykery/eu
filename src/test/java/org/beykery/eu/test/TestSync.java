@@ -19,9 +19,15 @@ import java.util.List;
 
 public class TestSync {
 
-    public static final Event SYNC_EVENT = new Event("Sync", Arrays.<TypeReference<?>>asList(new TypeReference<Uint112>() {
-    }, new TypeReference<Uint112>() {
-    }));
+    public static final Event SYNC_EVENT = new Event(
+            "Sync",
+            Arrays.asList(
+                    new TypeReference<Uint112>() {
+                    },
+                    new TypeReference<Uint112>() {
+                    }
+            )
+    );
 
     @Test
     void syncTest() throws InterruptedException, ConnectException {
@@ -33,12 +39,11 @@ public class TestSync {
                     long block = e.getBlockNumber();
                     long time = e.getBlockTimestamp();
                     long delta = System.currentTimeMillis() - time * 1000;
-                    System.out.println(delta);
-                    System.out.println(block);
+//                    System.out.println(block + " : " + delta);
                     Uint112 r0 = (Uint112) e.getNonIndexedValues().get(0);
                     Uint112 r1 = (Uint112) e.getNonIndexedValues().get(1);
                     String pairAddress = e.getContract();
-                    System.out.println(pairAddress + " : " + r0.getValue() + " : " + r1.getValue());
+                    System.out.println(block + " : " + e.getLogIndex() + " : " + pairAddress + " : " + r0.getValue() + " : " + r1.getValue() + " : " + delta);
 //                    System.out.println(this.getScanner().getCurrent() + " : " + block);
                 }
             }

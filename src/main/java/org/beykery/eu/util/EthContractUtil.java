@@ -24,6 +24,7 @@ import org.web3j.utils.Numeric;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -190,7 +191,7 @@ public class EthContractUtil {
             BigInteger decimals = decimals(web3j, contractAddress);
             if (decimals != null) {
                 int d = decimals.intValue();
-                return numberWithDecimals(balance, d);
+                return numberWithDecimals(balance, d, 0);
             }
         }
         return 0;
@@ -260,18 +261,24 @@ public class EthContractUtil {
      * @return
      */
     public static double numberWithDecimals(Uint256 v, int decimals) {
-        return numberWithDecimals(v.getValue(), decimals);
+        return numberWithDecimals(v.getValue(), decimals, 0);
     }
 
     /**
-     * @param v
-     * @param decimals
+     * @param v         value
+     * @param decimals  小数位数
+     * @param precision 放大次数
      * @return
      */
-    public static double numberWithDecimals(BigInteger v, int decimals) {
+    public static double numberWithDecimals(BigInteger v, int decimals, int precision) {
         BigDecimal bd = BigDecimal.valueOf(10);
         bd = bd.pow(decimals);
-        BigDecimal ret = new BigDecimal(v).divide(bd, decimals, BigDecimal.ROUND_DOWN);
+        BigDecimal ret;
+        if (precision > 0) {
+            ret = new BigDecimal(v.multiply(BigInteger.valueOf(10).pow(precision))).divide(bd, decimals, RoundingMode.DOWN);
+        } else {
+            ret = new BigDecimal(v).divide(bd, decimals, RoundingMode.DOWN);
+        }
         return ret.doubleValue();
     }
 
