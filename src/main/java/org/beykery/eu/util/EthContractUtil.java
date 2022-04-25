@@ -765,6 +765,36 @@ public class EthContractUtil {
     }
 
     /**
+     * decode input data
+     *
+     * @param inputData
+     * @param outputParameters
+     * @return
+     */
+    public static List<Type> decodeInputData(String inputData, List<TypeReference<?>> outputParameters) {
+        List<Type> result = FunctionReturnDecoder.decode(
+                inputData.substring(10),
+                convert(outputParameters)
+        );
+        return result;
+    }
+
+    /**
+     * ? to Type
+     *
+     * @param input
+     * @return
+     */
+    public static List<TypeReference<Type>> convert(List<TypeReference<?>> input) {
+        List<TypeReference<Type>> result = new ArrayList<>(input.size());
+        result.addAll(
+                input.stream()
+                        .map(typeReference -> (TypeReference<Type>) typeReference)
+                        .collect(Collectors.toList()));
+        return result;
+    }
+
+    /**
      * encode function
      *
      * @param f
@@ -773,6 +803,59 @@ public class EthContractUtil {
     public static String encode(Function f) {
         final String encode = FunctionEncoder.encode(f);
         return encode;
+    }
+
+    /**
+     * @param f
+     * @return
+     */
+    public static String buildMethodId(Function f) {
+        String signature = buildMethodSignature(f.getName(), f.getInputParameters());
+        String id = buildMethodId(signature);
+        return id;
+    }
+
+    /**
+     * method id
+     *
+     * @param methodName
+     * @param parameters
+     * @return
+     */
+    public static String buildMethodId(final String methodName, final List<Type> parameters) {
+        String signature = buildMethodSignature(methodName, parameters);
+        String id = buildMethodId(signature);
+        return id;
+    }
+
+    /**
+     * method signature
+     *
+     * @param methodName
+     * @param parameters
+     * @return
+     */
+    public static String buildMethodSignature(final String methodName, final List<Type> parameters) {
+        final StringBuilder result = new StringBuilder();
+        result.append(methodName);
+        result.append("(");
+        final String params =
+                parameters.stream().map(Type::getTypeAsString).collect(Collectors.joining(","));
+        result.append(params);
+        result.append(")");
+        return result.toString();
+    }
+
+    /**
+     * method id
+     *
+     * @param methodSignature
+     * @return
+     */
+    public static String buildMethodId(final String methodSignature) {
+        final byte[] input = methodSignature.getBytes();
+        final byte[] hash = Hash.sha3(input);
+        return Numeric.toHexString(hash).substring(0, 10);
     }
 
     /**
