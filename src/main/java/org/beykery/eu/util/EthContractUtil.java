@@ -599,6 +599,22 @@ public class EthContractUtil {
     }
 
     /**
+     * 随机私钥
+     *
+     * @return
+     */
+    public static String randomPrivate() {
+        try {
+            ECKeyPair ecKeyPair = Keys.createEcKeyPair();
+            BigInteger privateKeyInDec = ecKeyPair.getPrivateKey();
+            String pri = "0x" + privateKeyInDec.toString(16);
+            return pri;
+        } catch (Exception ex) {
+        }
+        return null;
+    }
+
+    /**
      * 组织一个raw transaction
      *
      * @param nonce nonce
