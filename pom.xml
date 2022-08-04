@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.beykery</groupId>
     <artifactId>eu</artifactId>
-    <version>0.0.26</version>
+    <version>0.0.27</version>
     <name>eu</name>
     <description>ethereum util</description>
     <properties>
@@ -15,7 +15,7 @@
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>2.22.2</maven-failsafe-plugin.version>
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
-        <web3j.version>4.9.0</web3j.version>
+        <web3j.version>4.9.4</web3j.version>
         <okhttp.version>4.9.3</okhttp.version>
         <jackson.version>2.13.1</jackson.version>
         <slf4j.version>1.7.35</slf4j.version>
