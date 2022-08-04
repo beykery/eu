@@ -923,4 +923,49 @@ public class EthContractUtil {
     ) {
         return signTransaction(privateKey, price, limit, to, value, f, nonce, 0);
     }
+
+    /**
+     * pending tx filter id
+     *
+     * @param web3j
+     * @return
+     * @throws IOException
+     */
+    public static BigInteger newPendingTransactionFilterId(Web3j web3j) throws IOException {
+        EthFilter filter = web3j.ethNewPendingTransactionFilter().send();
+        BigInteger fid = filter.getFilterId();
+        return fid;
+    }
+
+    /**
+     * pending transactions
+     *
+     * @param web3j
+     * @param filterId
+     * @param parallel
+     * @return
+     */
+    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, boolean parallel) throws IOException {
+        EthLog log = web3j.ethGetFilterChanges(filterId).send();
+        List<EthLog.LogResult> ls = log.getLogs();
+        if (ls != null && ls.size() > 0) {
+            Stream<EthLog.LogResult> stream = parallel ? ls.parallelStream() : ls.stream();
+            List<org.web3j.protocol.core.methods.response.Transaction> ret = stream.map(item -> {
+                org.web3j.protocol.core.methods.response.Transaction tx = null;
+                try {
+                    String hash = item.get().toString();
+                    EthTransaction et = web3j.ethGetTransactionByHash(hash).send();
+                    if (et.getTransaction().isPresent()) {
+                        tx = et.getTransaction().get();
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+                return tx;
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+            ret.sort((t1, t2) -> t2.getGasPrice().compareTo(t1.getGasPrice()));
+            return ret;
+        }
+        return Collections.EMPTY_LIST;
+    }
 }
