@@ -1,6 +1,7 @@
 package org.beykery.eu.event;
 
 import lombok.extern.slf4j.Slf4j;
+import org.beykery.eu.util.EthContractUtil;
 import org.web3j.abi.EventEncoder;
 import org.web3j.abi.EventValues;
 import org.web3j.abi.datatypes.Event;
@@ -253,16 +254,7 @@ public class LogEventScanner implements Runnable {
         return cid;
     }
 
-    /**
-     * event topic
-     *
-     * @param event
-     * @return
-     */
-    public static String getTopic(Event event) {
-        String encodedEventSignature = EventEncoder.encode(event);
-        return encodedEventSignature;
-    }
+
 
     /**
      * 是否为eth主网
@@ -288,7 +280,7 @@ public class LogEventScanner implements Runnable {
         }
         Map<String, Event> signatures = new HashMap<>();
         events.forEach(item -> {
-            String encodedEventSignature = getTopic(item);
+            String encodedEventSignature = EthContractUtil.getTopic(item);
             signatures.put(encodedEventSignature, item);
         });
         final long minInterval = this.minInterval == 0 ? 1000 * blockInterval / 3 : this.minInterval; // 最小间隔

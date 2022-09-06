@@ -1,9 +1,8 @@
 package org.beykery.eu.util;
 
 import okhttp3.OkHttpClient;
-import org.web3j.abi.FunctionEncoder;
-import org.web3j.abi.FunctionReturnDecoder;
-import org.web3j.abi.TypeReference;
+import org.beykery.eu.event.LogEvent;
+import org.web3j.abi.*;
 import org.web3j.abi.datatypes.*;
 import org.web3j.abi.datatypes.generated.Bytes32;
 import org.web3j.abi.datatypes.generated.Uint256;
@@ -18,6 +17,7 @@ import org.web3j.protocol.websocket.WebSocketService;
 import org.web3j.rlp.RlpEncoder;
 import org.web3j.rlp.RlpList;
 import org.web3j.rlp.RlpString;
+import org.web3j.tx.Contract;
 import org.web3j.utils.Async;
 import org.web3j.utils.Numeric;
 
@@ -73,6 +73,53 @@ public class EthContractUtil {
     public static TransactionReceipt transactionReceipt(Web3j web3j, String hash) throws IOException {
         EthGetTransactionReceipt receipt = web3j.ethGetTransactionReceipt(hash).send();
         return receipt.getResult();
+    }
+
+    /**
+     * events for tx
+     *
+     * @param web3j
+     * @param hash
+     * @param events
+     * @return
+     * @throws IOException
+     */
+    public static List<LogEvent> events(Web3j web3j, String hash, List<Event> events) throws IOException {
+        TransactionReceipt receipt = transactionReceipt(web3j, hash);
+        List<Log> logs = receipt.getLogs();
+        if (logs != null) {
+            Map<String, Event> signatures = new HashMap<>();
+            events.forEach(item -> {
+                String encodedEventSignature = getTopic(item);
+                signatures.put(encodedEventSignature, item);
+            });
+            List<LogEvent> es = logs.stream().map(item -> {
+                String topic = item.getTopics().get(0);
+                Event event = signatures.get(topic);
+                if (event != null) {
+                    String tx = item.getTransactionHash().toLowerCase();           // tx hash
+                    BigInteger blockNumber = item.getBlockNumber();                // block number
+                    BigInteger lidx = item.getLogIndex();                          // log index
+                    String contractAddress = item.getAddress().toLowerCase();      // contract address
+
+                    EventValues values = Contract.staticExtractEventParameters(event, item);
+
+                    LogEvent le = LogEvent.builder()
+                            .event(event)
+                            .transactionHash(tx)
+                            .blockNumber(blockNumber.longValue())
+                            .logIndex(lidx.longValue())
+                            .contract(contractAddress)
+                            .indexedValues(values.getIndexedValues())
+                            .nonIndexedValues(values.getNonIndexedValues())
+                            .build();
+                    return le;
+                }
+                return null;
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+            return es;
+        }
+        return Collections.EMPTY_LIST;
     }
 
     /**
@@ -967,5 +1014,16 @@ public class EthContractUtil {
             return ret;
         }
         return Collections.EMPTY_LIST;
+    }
+
+    /**
+     * event topic
+     *
+     * @param event
+     * @return
+     */
+    public static String getTopic(Event event) {
+        String encodedEventSignature = EventEncoder.encode(event);
+        return encodedEventSignature;
     }
 }
