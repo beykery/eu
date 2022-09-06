@@ -76,16 +76,25 @@ public class EthContractUtil {
     }
 
     /**
-     * events for tx
+     * transaction
      *
      * @param web3j
      * @param hash
+     * @return
+     */
+    public static org.web3j.protocol.core.methods.response.Transaction transaction(Web3j web3j, String hash) throws Exception {
+        EthTransaction et = web3j.ethGetTransactionByHash(hash).send();
+        return et.getTransaction().get();
+    }
+
+    /**
+     * event for receipt
+     *
+     * @param receipt
      * @param events
      * @return
-     * @throws IOException
      */
-    public static List<LogEvent> events(Web3j web3j, String hash, List<Event> events) throws IOException {
-        TransactionReceipt receipt = transactionReceipt(web3j, hash);
+    public static List<LogEvent> events(TransactionReceipt receipt, List<Event> events) {
         List<Log> logs = receipt.getLogs();
         if (logs != null) {
             Map<String, Event> signatures = new HashMap<>();
@@ -120,6 +129,20 @@ public class EthContractUtil {
             return es;
         }
         return Collections.EMPTY_LIST;
+    }
+
+    /**
+     * events for tx
+     *
+     * @param web3j
+     * @param hash
+     * @param events
+     * @return
+     * @throws IOException
+     */
+    public static List<LogEvent> events(Web3j web3j, String hash, List<Event> events) throws IOException {
+        TransactionReceipt receipt = transactionReceipt(web3j, hash);
+        return events(receipt, events);
     }
 
     /**
