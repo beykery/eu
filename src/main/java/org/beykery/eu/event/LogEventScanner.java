@@ -2,7 +2,6 @@ package org.beykery.eu.event;
 
 import lombok.extern.slf4j.Slf4j;
 import org.beykery.eu.util.EthContractUtil;
-import org.web3j.abi.EventEncoder;
 import org.web3j.abi.EventValues;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.protocol.Web3j;
@@ -255,7 +254,6 @@ public class LogEventScanner implements Runnable {
     }
 
 
-
     /**
      * 是否为eth主网
      *
@@ -319,6 +317,7 @@ public class LogEventScanner implements Runnable {
                     }
                     continue;
                 }
+                List<LogEvent> les = null;
                 long logSize = 0;  // 用来调整步长
                 List<EthLog.LogResult> lr = el == null ? Collections.EMPTY_LIST : el.getLogs();
                 if (lr != null) {
@@ -328,6 +327,7 @@ public class LogEventScanner implements Runnable {
                         return log;
                     }).filter(Objects::nonNull).collect(Collectors.toList());
                     log.debug("from {} to {} find {} events with step {}", f, t, logs.size(), step);
+
                     if (logs.size() > 0) {
                         logSize = logs.size();
                         // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
@@ -338,7 +338,7 @@ public class LogEventScanner implements Runnable {
                                     Event event = signatures.get(topic);
                                     return size == event.getIndexedParameters().size();
                                 });
-                        List<LogEvent> les = stream.map(item -> {
+                        les = stream.map(item -> {
                             String topic = item.getTopics().get(0);
                             Event event = signatures.get(topic);
 
@@ -369,11 +369,11 @@ public class LogEventScanner implements Runnable {
                             Collections.reverse(les);
                         }
 
-                        listener.onLogEvents(les);
                     }
                 } else {
                     log.debug("from {} to {} find {} events", f, t, 0);
                 }
+                listener.onLogEvents(les == null ? Collections.EMPTY_LIST : les);
                 listener.onOnceScanOver(f, t, logSize);
                 f = t + 1;  // to the next loop
                 // step adjust
