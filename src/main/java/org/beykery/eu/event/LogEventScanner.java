@@ -3,7 +3,9 @@ package org.beykery.eu.event;
 import lombok.extern.slf4j.Slf4j;
 import org.beykery.eu.util.EthContractUtil;
 import org.web3j.abi.EventValues;
+import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Event;
+import org.web3j.abi.datatypes.Type;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
@@ -336,7 +338,12 @@ public class LogEventScanner implements Runnable {
                                     String topic = item.getTopics().get(0);
                                     int size = item.getTopics().size() - 1;
                                     Event event = signatures.get(topic);
-                                    return size == event.getIndexedParameters().size();
+                                    List<TypeReference<Type>> indexedParams = event == null ? null : event.getIndexedParameters();
+                                    if (indexedParams != null) {
+                                        return size == indexedParams.size();
+                                    } else {
+                                        return false;
+                                    }
                                 });
                         les = stream.map(item -> {
                             String topic = item.getTopics().get(0);
