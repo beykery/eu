@@ -2,22 +2,16 @@ package org.beykery.eu.event;
 
 import lombok.extern.slf4j.Slf4j;
 import org.beykery.eu.util.EthContractUtil;
-import org.web3j.abi.EventValues;
-import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Event;
-import org.web3j.abi.datatypes.Type;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.request.EthFilter;
-import org.web3j.protocol.core.methods.response.*;
-import org.web3j.tx.Contract;
+import org.web3j.protocol.core.methods.response.EthBlock;
+import org.web3j.protocol.core.methods.response.EthChainId;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * scan log event
@@ -61,6 +55,11 @@ public class LogEventScanner implements Runnable {
     private List<String> contracts;
 
     /**
+     * 是否从tx中分析log
+     */
+    private boolean logFromTx;
+
+    /**
      * 出块间隔(second)
      */
     private long blockInterval;
@@ -76,7 +75,7 @@ public class LogEventScanner implements Runnable {
     private long current;
 
     /**
-     * 当前高度的时间
+     * 当前高度的时间(second)
      */
     private long currentTime;
 
@@ -127,6 +126,25 @@ public class LogEventScanner implements Runnable {
         this.listener = listener;
         this.maxRetry = maxRetry;
         this.retryInterval = retryInterval;
+    }
+
+    /**
+     * scanner
+     *
+     * @param web3j
+     * @param blockInterval
+     * @param maxRetry
+     * @param retryInterval
+     * @param logFromTx
+     * @param listener
+     */
+    public LogEventScanner(Web3j web3j, long blockInterval, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
+        this.web3j = web3j;
+        this.blockInterval = blockInterval;
+        this.listener = listener;
+        this.maxRetry = maxRetry;
+        this.retryInterval = retryInterval;
+        this.logFromTx = logFromTx;
     }
 
     /**
@@ -278,11 +296,6 @@ public class LogEventScanner implements Runnable {
             scanning = false;
             throw new RuntimeException(ex);
         }
-        Map<String, Event> signatures = new HashMap<>();
-        events.forEach(item -> {
-            String encodedEventSignature = EthContractUtil.getTopic(item);
-            signatures.put(encodedEventSignature, item);
-        });
         final long minInterval = this.minInterval == 0 ? 1000 * blockInterval / 3 : this.minInterval; // 最小间隔
         long latest = 0;
         from = from < 0 ? current : from; // from
@@ -294,93 +307,27 @@ public class LogEventScanner implements Runnable {
             }
             long t = Math.min(f + step - 1, current);
             if (f <= t) {
-                EthFilter filter = new EthFilter(
-                        DefaultBlockParameter.valueOf(BigInteger.valueOf(f)),
-                        DefaultBlockParameter.valueOf(BigInteger.valueOf(t)),
-                        contracts == null ? Collections.EMPTY_LIST : contracts
-                );
-                Set<String> topics = signatures.keySet();
-                filter.addOptionalTopics(topics.toArray(new String[0]));
-                EthLog el;
-                try {
-                    int retry = 0;
-                    el = web3j.ethGetLogs(filter).send();
-                    while (retry < this.maxRetry && (el == null || el.getLogs().isEmpty())) {
-                        Thread.sleep(this.retryInterval);
-                        el = web3j.ethGetLogs(filter).send();
-                        retry++;
-                    }
-                } catch (Exception ex) {
-                    log.error("fetch logs failed with range {} - {} ", f, t);
-                    step = 1;
-                    try {
-                        Thread.sleep(2000);
-                    } catch (Exception x) {
-                    }
-                    continue;
-                }
                 List<LogEvent> les = null;
-                long logSize = 0;  // 用来调整步长
-                List<EthLog.LogResult> lr = el == null ? Collections.EMPTY_LIST : el.getLogs();
-                if (lr != null) {
-                    List<Log> logs = lr.stream().map(item -> {
-                        EthLog.LogObject lo = (EthLog.LogObject) item.get();
-                        Log log = lo.get();
-                        return log;
-                    }).filter(Objects::nonNull).collect(Collectors.toList());
-                    log.debug("from {} to {} find {} events with step {}", f, t, logs.size(), step);
-
-                    if (logs.size() > 0) {
-                        logSize = logs.size();
-                        // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
-                        Stream<Log> stream = logs.stream()
-                                .filter(item -> {
-                                    String topic = item.getTopics().get(0);
-                                    int size = item.getTopics().size() - 1;
-                                    Event event = signatures.get(topic);
-                                    List<TypeReference<Type>> indexedParams = event == null ? null : event.getIndexedParameters();
-                                    if (indexedParams != null) {
-                                        return size == indexedParams.size();
-                                    } else {
-                                        return false;
-                                    }
-                                });
-                        les = stream.map(item -> {
-                            String topic = item.getTopics().get(0);
-                            Event event = signatures.get(topic);
-
-                            String tx = item.getTransactionHash().toLowerCase();           // tx hash
-                            BigInteger blockNumber = item.getBlockNumber();                // block number
-                            BigInteger lidx = item.getLogIndex();                          // log index
-                            String contractAddress = item.getAddress().toLowerCase();      // contract address
-
-                            EventValues values = Contract.staticExtractEventParameters(event, item);
-
-                            // 通知listener
-                            LogEvent le = LogEvent.builder()
-                                    .event(event)
-                                    .transactionHash(tx)
-                                    .blockNumber(blockNumber.longValue())
-                                    .logIndex(lidx.longValue())
-                                    .contract(contractAddress)
-                                    .indexedValues(values.getIndexedValues())
-                                    .nonIndexedValues(values.getNonIndexedValues())
-                                    .build();
-                            if (le.getBlockNumber() == current) {
-                                le.setBlockTimestamp(currentTime);
-                            }
-                            return le;
-                        }).collect(Collectors.toList());
-
-                        if (listener.reverse()) {
-                            Collections.reverse(les);
+                int retry = 0;
+                while (les == null && (retry <= 0 || retry <= maxRetry)) {
+                    try {
+                        les = EthContractUtil.getLogEvents(web3j, f, t, events, contracts, logFromTx);
+                    } catch (Exception ex) {
+                        log.error("fetch logs failed with range {} - {} ", f, t);
+                        step = 1;
+                        try {
+                            Thread.sleep(retryInterval);
+                            retry++;
+                        } catch (Exception x) {
                         }
-
                     }
-                } else {
-                    log.debug("from {} to {} find {} events", f, t, 0);
                 }
-                listener.onLogEvents(les == null ? Collections.EMPTY_LIST : les);
+                les = les == null ? Collections.EMPTY_LIST : les;
+                long logSize = les.size();  // 用来调整步长
+                if (logSize > 0 && listener.reverse()) {
+                    Collections.reverse(les);
+                }
+                listener.onLogEvents(les);
                 listener.onOnceScanOver(f, t, logSize);
                 f = t + 1;  // to the next loop
                 // step adjust
@@ -395,8 +342,8 @@ public class LogEventScanner implements Runnable {
                 log.debug("reach the highest block {}", t);
                 step = 1;
                 listener.onReachHighest(t);
-                long next = currentTime + blockInterval;
-                long delta = next * 1000 - System.currentTimeMillis();
+                long next = currentTime * 1000 + averageBlockInterval;
+                long delta = next - System.currentTimeMillis();
                 if (delta > 0) {
                     log.debug("sleep for the next filter with {} milliseconds", delta);
                     try {

@@ -1049,4 +1049,201 @@ public class EthContractUtil {
         String encodedEventSignature = EventEncoder.encode(event);
         return encodedEventSignature;
     }
+
+    /**
+     * 查找块上的事件
+     *
+     * @param web3j
+     * @param events
+     * @return
+     */
+    public static List<LogEvent> getLogEvents(Web3j web3j, long from, long to, List<Event> events, List<String> contracts) throws Exception {
+        return getLogEvents(web3j, from, to, events, contracts, false);
+    }
+
+    /**
+     * 获取tx上的log
+     *
+     * @param web3j
+     * @param hash
+     * @param events
+     * @param contracts
+     * @return
+     * @throws IOException
+     */
+    public static List<LogEvent> getLogEvents(Web3j web3j, String hash, List<Event> events, List<String> contracts) throws IOException {
+        EthGetTransactionReceipt er = web3j.ethGetTransactionReceipt(hash).send();
+        if (er.getTransactionReceipt().isPresent()) {
+            TransactionReceipt receipt = er.getTransactionReceipt().get();
+            List<Log> logs = receipt.getLogs();
+            if (logs.size() > 0) {
+                Map<String, Event> signatures = new HashMap<>();
+                events.forEach(item -> {
+                    String encodedEventSignature = EventEncoder.encode(item);
+                    signatures.put(encodedEventSignature, item);
+                });
+                Set<String> contractsFilter = (contracts == null || contracts.isEmpty()) ? null : contracts.stream().map(String::toLowerCase).collect(Collectors.toSet());
+                Stream<Log> stream = logs.stream()
+                        .filter(item -> {
+                                    if (contractsFilter != null) {
+                                        if (!contractsFilter.contains(item.getAddress())) {
+                                            return false;
+                                        }
+                                    }
+                                    String topic = item.getTopics().get(0);
+                                    int size = item.getTopics().size() - 1;
+                                    Event event = signatures.get(topic);
+                                    List<TypeReference<Type>> indexedParams = event == null ? null : event.getIndexedParameters();
+                                    if (indexedParams != null) {
+                                        return size == indexedParams.size();
+                                    } else {
+                                        return false;
+                                    }
+                                }
+                        );
+                List<LogEvent> les = stream.map(item -> {
+                    String topic = item.getTopics().get(0);
+                    Event event = signatures.get(topic);
+
+                    String tx = item.getTransactionHash().toLowerCase();           // tx hash
+                    BigInteger blockNumber = item.getBlockNumber();                // block number
+                    BigInteger lidx = item.getLogIndex();                          // log index
+                    String contractAddress = item.getAddress().toLowerCase();      // contract address
+
+                    EventValues values = Contract.staticExtractEventParameters(event, item);
+
+                    // 通知listener
+                    LogEvent le = LogEvent.builder()
+                            .event(event)
+                            .transactionHash(tx)
+                            .blockNumber(blockNumber.longValue())
+                            .logIndex(lidx.longValue())
+                            .contract(contractAddress)
+                            .indexedValues(values.getIndexedValues())
+                            .nonIndexedValues(values.getNonIndexedValues())
+                            .build();
+                    return le;
+                }).collect(Collectors.toList());
+
+                return les;
+            }
+        }
+        return Collections.EMPTY_LIST;
+    }
+
+    /**
+     * 分析log
+     *
+     * @param web3j
+     * @param from
+     * @param to
+     * @param events
+     * @param contracts
+     * @param logFromTx
+     * @return
+     * @throws IOException
+     */
+    public static List<LogEvent> getLogEvents(Web3j web3j, long from, long to, List<Event> events, List<String> contracts, boolean logFromTx) throws Exception {
+        if (logFromTx) {
+            List<LogEvent> logs = Collections.synchronizedList(new ArrayList<>());
+            while (from <= to) {
+                EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameter.valueOf(BigInteger.valueOf(from)), false).send();
+                List<EthBlock.TransactionResult> transactionResults = block.getBlock().getTransactions();
+                List<String> hashes = transactionResults.size() > 0 ? transactionResults.stream().map(item -> item.get().toString()).collect(Collectors.toList()) : null;
+                if (hashes != null) {
+                    hashes.parallelStream().forEach(hash -> {
+                        try {
+                            List<LogEvent> es = getLogEvents(web3j, hash, events, contracts);
+                            logs.addAll(es);
+                        } catch (Exception ex) {
+                            throw new RuntimeException(ex);
+                        }
+                    });
+                }
+                from++;
+            }
+            if (logs.size() > 0) {
+                logs.sort((o1, o2) -> {
+                    long ret = o1.getBlockNumber() - o2.getBlockNumber();
+                    if (ret > 0) {
+                        return 1;
+                    } else if (ret < 0) {
+                        return -1;
+                    } else {
+                        ret = o1.getLogIndex() - o2.getLogIndex();
+                        if (ret > 0) {
+                            return 1;
+                        } else if (ret < 0) {
+                            return -1;
+                        } else {
+                            return 0;
+                        }
+                    }
+                });
+            }
+            return logs;
+        }
+        Map<String, Event> signatures = new HashMap<>();
+        events.forEach(item -> {
+            String encodedEventSignature = EventEncoder.encode(item);
+            signatures.put(encodedEventSignature, item);
+        });
+        org.web3j.protocol.core.methods.request.EthFilter filter = new org.web3j.protocol.core.methods.request.EthFilter(
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(from)),
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(to)),
+                contracts == null ? Collections.EMPTY_LIST : contracts
+        );
+        Set<String> topics = signatures.keySet();
+        filter.addOptionalTopics(topics.toArray(new String[0]));
+        EthLog el = web3j.ethGetLogs(filter).send();
+        List<EthLog.LogResult> lr = (el == null || el.getLogs() == null) ? Collections.EMPTY_LIST : el.getLogs();
+        if (lr != null) {
+            List<Log> logs = lr.stream().map(item -> {
+                EthLog.LogObject lo = (EthLog.LogObject) item.get();
+                Log log = lo.get();
+                return log;
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+            if (logs.size() > 0) {
+                // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
+                Stream<Log> stream = logs.stream()
+                        .filter(item -> {
+                            String topic = item.getTopics().get(0);
+                            int size = item.getTopics().size() - 1;
+                            Event event = signatures.get(topic);
+                            List<TypeReference<Type>> indexedParams = event == null ? null : event.getIndexedParameters();
+                            if (indexedParams != null) {
+                                return size == indexedParams.size();
+                            } else {
+                                return false;
+                            }
+                        });
+                List<LogEvent> les = stream.map(item -> {
+                    String topic = item.getTopics().get(0);
+                    Event event = signatures.get(topic);
+
+                    String tx = item.getTransactionHash().toLowerCase();           // tx hash
+                    BigInteger blockNumber = item.getBlockNumber();                // block number
+                    BigInteger lidx = item.getLogIndex();                          // log index
+                    String contractAddress = item.getAddress().toLowerCase();      // contract address
+
+                    EventValues values = Contract.staticExtractEventParameters(event, item);
+
+                    // 通知listener
+                    LogEvent le = LogEvent.builder()
+                            .event(event)
+                            .transactionHash(tx)
+                            .blockNumber(blockNumber.longValue())
+                            .logIndex(lidx.longValue())
+                            .contract(contractAddress)
+                            .indexedValues(values.getIndexedValues())
+                            .nonIndexedValues(values.getNonIndexedValues())
+                            .build();
+                    return le;
+                }).collect(Collectors.toList());
+
+                return les;
+            }
+        }
+        return Collections.EMPTY_LIST;
+    }
 }
