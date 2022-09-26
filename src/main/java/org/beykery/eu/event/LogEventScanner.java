@@ -342,8 +342,8 @@ public class LogEventScanner implements Runnable {
                 log.debug("reach the highest block {}", t);
                 step = 1;
                 listener.onReachHighest(t);
-                long next = currentTime * 1000 + averageBlockInterval;
-                long delta = next - System.currentTimeMillis();
+                long next = currentTime + blockInterval;
+                long delta = next * 1000 - System.currentTimeMillis();
                 if (delta > 0) {
                     log.debug("sleep for the next filter with {} milliseconds", delta);
                     try {
