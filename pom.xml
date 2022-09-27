@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.beykery</groupId>
     <artifactId>eu</artifactId>
-    <version>0.0.33</version>
+    <version>0.0.34</version>
     <name>eu</name>
     <description>ethereum util</description>
     <properties>
@@ -14,11 +14,11 @@
         <java.version>1.8</java.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>2.22.2</maven-failsafe-plugin.version>
-        <junit-jupiter.version>5.8.2</junit-jupiter.version>
+        <junit-jupiter.version>5.9.1</junit-jupiter.version>
         <web3j.version>4.9.4</web3j.version>
-        <okhttp.version>4.9.3</okhttp.version>
-        <jackson.version>2.13.1</jackson.version>
-        <slf4j.version>1.7.35</slf4j.version>
+        <okhttp.version>4.10.0</okhttp.version>
+        <jackson.version>2.13.4</jackson.version>
+        <slf4j.version>1.7.36</slf4j.version>
     </properties>
     <url>
         https://github.com/beykery/eu
@@ -201,7 +201,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.22</version>
+            <version>1.18.24</version>
         </dependency>
 
         <dependency>
