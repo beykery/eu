@@ -59,6 +59,11 @@ public class TestSync {
             }
 
             @Override
+            public void onError(Throwable ex) {
+
+            }
+
+            @Override
             public boolean reverse() {
                 return false;
             }

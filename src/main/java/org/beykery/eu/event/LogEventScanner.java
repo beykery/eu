@@ -313,7 +313,7 @@ public class LogEventScanner implements Runnable {
                     try {
                         les = EthContractUtil.getLogEvents(web3j, f, t, events, contracts, logFromTx);
                     } catch (Exception ex) {
-                        log.error("fetch logs failed with range {} - {} ", f, t);
+                        listener.onError(ex);
                         step = 1;
                         try {
                             Thread.sleep(retryInterval);

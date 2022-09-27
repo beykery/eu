@@ -31,6 +31,13 @@ public interface LogEventListener {
     void onReachHighest(long h);
 
     /**
+     * 错误
+     *
+     * @param ex
+     */
+    void onError(Throwable ex);
+
+    /**
      * 事件顺序是否翻转
      *
      * @return
