@@ -1196,7 +1196,10 @@ public class EthContractUtil {
         Set<String> topics = signatures.keySet();
         filter.addOptionalTopics(topics.toArray(new String[0]));
         EthLog el = web3j.ethGetLogs(filter).send();
-        List<EthLog.LogResult> lr = (el == null || el.getLogs() == null) ? Collections.EMPTY_LIST : el.getLogs();
+        if (el == null || el.hasError() || el.getLogs() == null) {
+            throw new RuntimeException("can not fetch logs");
+        }
+        List<EthLog.LogResult> lr = el.getLogs();
         if (lr != null) {
             List<Log> logs = lr.stream().map(item -> {
                 EthLog.LogObject lo = (EthLog.LogObject) item.get();
