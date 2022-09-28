@@ -325,7 +325,6 @@ public class LogEventScanner implements Runnable {
                         step = 1;
                         try {
                             Thread.sleep(retryInterval);
-                            retry++;
                         } catch (Exception x) {
                         }
                     }
