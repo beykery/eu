@@ -316,8 +316,11 @@ public class LogEventScanner implements Runnable {
                         if (les.isEmpty()) {
                             maxRetry = 3;
                             retry++;
+                        } else if (retry > 0) { // retry 后成功
+                            log.info("fetch logs success from {} to {} with {} retry", f, t, retry);
                         }
                     } catch (Throwable ex) {
+                        log.error("fetch logs error from {} to {} with {} retry", f, t, retry);
                         listener.onError(ex);
                         step = 1;
                         try {
