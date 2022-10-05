@@ -320,6 +320,7 @@ public class LogEventScanner implements Runnable {
                             log.info("fetch {} logs success from {} to {} with {} retry", les.size(), f, t, retry);
                         }
                     } catch (Throwable ex) {
+                        retry++;
                         maxRetry = this.maxRetry;
                         log.error("fetch logs error from {} to {} with {} retry", f, t, retry);
                         listener.onError(ex);
