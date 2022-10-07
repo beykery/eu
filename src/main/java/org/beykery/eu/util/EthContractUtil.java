@@ -48,6 +48,11 @@ public class EthContractUtil {
     public static final String ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
     /**
+     * pool for parallel
+     */
+    private static ForkJoinPool POOL;
+
+    /**
      * 合约函数call
      *
      * @param function        合约方法
@@ -1021,7 +1026,12 @@ public class EthContractUtil {
         EthLog log = web3j.ethGetFilterChanges(filterId).send();
         List<EthLog.LogResult> ls = log.getLogs();
         if (ls != null && ls.size() > 0) {
-            Stream<EthLog.LogResult> stream = parallel > 1 ? ParallelStreamSupport.parallelStream(ls, new ForkJoinPool(parallel)) : ls.stream();
+            if (parallel > 1) {
+                if (POOL == null || POOL.getParallelism() != parallel) {
+                    POOL = new ForkJoinPool(parallel);
+                }
+            }
+            Stream<EthLog.LogResult> stream = parallel > 1 ? ParallelStreamSupport.parallelStream(ls, POOL) : ls.stream();
             List<org.web3j.protocol.core.methods.response.Transaction> ret = stream.map(item -> {
                 org.web3j.protocol.core.methods.response.Transaction tx = null;
                 try {
