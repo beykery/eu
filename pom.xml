@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.beykery</groupId>
     <artifactId>eu</artifactId>
-    <version>0.0.40</version>
+    <version>0.0.41</version>
     <name>eu</name>
     <description>ethereum util</description>
     <properties>
@@ -114,6 +114,13 @@
         </profile>
     </profiles>
     <dependencies>
+
+        <!--并行框架-->
+        <dependency>
+            <groupId>com.github.ferstl</groupId>
+            <artifactId>parallel-stream-support</artifactId>
+            <version>1.0.1</version>
+        </dependency>
 
         <!--log-->
         <dependency>

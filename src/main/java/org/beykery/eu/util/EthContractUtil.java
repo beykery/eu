@@ -1,5 +1,6 @@
 package org.beykery.eu.util;
 
+import com.github.ferstl.streams.ParallelStreamSupport;
 import okhttp3.OkHttpClient;
 import org.beykery.eu.event.LogEvent;
 import org.web3j.abi.*;
@@ -28,6 +29,7 @@ import java.math.RoundingMode;
 import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -1015,11 +1017,11 @@ public class EthContractUtil {
      * @param parallel
      * @return
      */
-    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, boolean parallel) throws IOException {
+    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel) throws IOException {
         EthLog log = web3j.ethGetFilterChanges(filterId).send();
         List<EthLog.LogResult> ls = log.getLogs();
         if (ls != null && ls.size() > 0) {
-            Stream<EthLog.LogResult> stream = parallel ? ls.parallelStream() : ls.stream();
+            Stream<EthLog.LogResult> stream = parallel > 1 ? ParallelStreamSupport.parallelStream(ls, new ForkJoinPool(parallel)) : ls.stream();
             List<org.web3j.protocol.core.methods.response.Transaction> ret = stream.map(item -> {
                 org.web3j.protocol.core.methods.response.Transaction tx = null;
                 try {
