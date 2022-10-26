@@ -296,7 +296,7 @@ public class LogEventScanner implements Runnable {
             scanning = false;
             throw new RuntimeException(ex);
         }
-        final long minInterval = this.minInterval == 0 ? 1000 * blockInterval / 3 : this.minInterval; // 最小间隔
+        final long minInterval = this.minInterval == 0 ? 1000 * blockInterval / 10 : this.minInterval; // 最小间隔
         long latest = 0;
         from = from < 0 ? current : from; // from
         long step = 1;    // 步长
@@ -313,15 +313,11 @@ public class LogEventScanner implements Runnable {
                 while ((les == null || les.isEmpty()) && (retry <= 0 || retry <= maxRetry)) {
                     try {
                         les = EthContractUtil.getLogEvents(web3j, f, t, events, contracts, logFromTx);
-                        if (les.isEmpty()) {
-                            maxRetry = 3;
-                            retry++;
-                        } else if (retry > 0) { // retry 后成功
+                        if (retry > 0) { // retry 后成功
                             log.info("fetch {} logs success from {} to {} with {} retry", les.size(), f, t, retry);
                         }
                     } catch (Throwable ex) {
                         retry++;
-                        maxRetry = this.maxRetry;
                         log.error("fetch logs error from {} to {} with {} retry", f, t, retry);
                         listener.onError(ex);
                         step = 1;
@@ -372,8 +368,10 @@ public class LogEventScanner implements Runnable {
                     if (c[0] == current + 1) {
                         this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + (c[1] - currentTime) * 1000 * sensitivity);
                     }
-                    current = c[0];
-                    currentTime = c[1];
+                    if (c[0] > current) {
+                        current = c[0];
+                        currentTime = c[1];
+                    }
                 } catch (Exception ex) {
                     log.error("fetch the current block number and timestamp failed");
                 }
