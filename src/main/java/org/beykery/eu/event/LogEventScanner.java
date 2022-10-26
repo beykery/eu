@@ -371,6 +371,8 @@ public class LogEventScanner implements Runnable {
                     if (c[0] > current) {
                         current = c[0];
                         currentTime = c[1];
+                    } else if (c[0] < current) {
+                        log.warn("block {} less than current block {}, ignore it .", c[0], current);
                     }
                 } catch (Exception ex) {
                     log.error("fetch the current block number and timestamp failed");
