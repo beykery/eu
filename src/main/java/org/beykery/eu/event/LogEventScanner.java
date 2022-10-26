@@ -313,11 +313,15 @@ public class LogEventScanner implements Runnable {
                 while ((les == null || les.isEmpty()) && (retry <= 0 || retry <= maxRetry)) {
                     try {
                         les = EthContractUtil.getLogEvents(web3j, f, t, events, contracts, logFromTx);
-                        if (retry > 0) { // retry 后成功
+                        if (les.isEmpty()) {
+                            maxRetry = 2;
+                            retry++;
+                        } else if (retry > 0) { // retry 后成功
                             log.info("fetch {} logs success from {} to {} with {} retry", les.size(), f, t, retry);
                         }
                     } catch (Throwable ex) {
                         retry++;
+                        maxRetry = this.maxRetry;
                         log.error("fetch logs error from {} to {} with {} retry", f, t, retry);
                         listener.onError(ex);
                         step = 1;
