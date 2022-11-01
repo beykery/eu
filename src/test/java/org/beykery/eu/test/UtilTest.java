@@ -1,17 +1,16 @@
 package org.beykery.eu.test;
 
 import org.junit.jupiter.api.Test;
-import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.DynamicArray;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Uint256;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static org.beykery.eu.util.EthContractUtil.decodeInputData;
 
 public class UtilTest {
 
@@ -28,22 +27,5 @@ public class UtilTest {
         );
         List<Type> ret = decodeInputData(input, temp);
         System.out.println(ret);
-    }
-
-    public static List<Type> decodeInputData(String inputData, List<TypeReference<?>> outputParameters) {
-        List<Type> result = FunctionReturnDecoder.decode(
-                inputData.substring(10),
-                convert(outputParameters)
-        );
-        return result;
-    }
-
-    public static List<TypeReference<Type>> convert(List<TypeReference<?>> input) {
-        List<TypeReference<Type>> result = new ArrayList<>(input.size());
-        result.addAll(
-                input.stream()
-                        .map(typeReference -> (TypeReference<Type>) typeReference)
-                        .collect(Collectors.toList()));
-        return result;
     }
 }
