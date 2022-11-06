@@ -981,6 +981,35 @@ public class EthContractUtil {
     }
 
     /**
+     * type 2 tx sign
+     *
+     * @param privateKey
+     * @param limit
+     * @param to
+     * @param value
+     * @param f
+     * @param nonce
+     * @param chainId
+     * @param maxPriorityFeePerGas
+     * @param maxFeePerGas
+     * @return
+     */
+    public static String signTransaction(
+            String privateKey,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            Function f,
+            BigInteger nonce,
+            long chainId,
+            BigInteger maxPriorityFeePerGas,
+            BigInteger maxFeePerGas
+    ) {
+        String data = encode(f);
+        return signTransaction(privateKey, limit, to, value, data, nonce, maxPriorityFeePerGas, maxFeePerGas, chainId);
+    }
+
+    /**
      * sign function for contract
      *
      * @param privateKey
