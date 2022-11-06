@@ -615,6 +615,35 @@ public class EthContractUtil {
     }
 
     /**
+     * type 2 tx
+     *
+     * @param privateKey
+     * @param limit
+     * @param to
+     * @param value
+     * @param data
+     * @param nonce
+     * @param maxPriorityFeePerGas
+     * @param maxFeePerGas
+     * @param chainId
+     * @return
+     */
+    public static String signTransaction(
+            String privateKey,
+            BigInteger limit,
+            String to,
+            BigInteger value,
+            String data,
+            BigInteger nonce,
+            BigInteger maxPriorityFeePerGas,
+            BigInteger maxFeePerGas,
+            long chainId
+    ) {
+        RawTransaction rawTransaction = rawTransaction(chainId, nonce, limit, to, value, data, maxPriorityFeePerGas, maxFeePerGas);
+        return signTransaction(privateKey, rawTransaction, chainId);
+    }
+
+    /**
      * 签名交易
      *
      * @param privateKey 私钥
