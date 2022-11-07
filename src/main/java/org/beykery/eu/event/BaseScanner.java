@@ -31,7 +31,7 @@ public abstract class BaseScanner implements LogEventListener {
      *
      * @param web3j
      * @param currentBlockProvider
-     * @param blockInterval        second
+     * @param blockInterval        ms
      * @param events
      * @param from
      * @param minInterval
@@ -42,7 +42,7 @@ public abstract class BaseScanner implements LogEventListener {
      */
     public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, double sensitivity, long step, String... contracts) {
         int maxRetry = 3;
-        long retryInterval = (long) (blockInterval * 1000.0 / 20);
+        long retryInterval = blockInterval / 20;
         return start(web3j, currentBlockProvider, blockInterval, events, from, minInterval, sensitivity, step, maxRetry, retryInterval, contracts);
     }
 
@@ -51,7 +51,7 @@ public abstract class BaseScanner implements LogEventListener {
      *
      * @param web3j
      * @param currentBlockProvider
-     * @param blockInterval
+     * @param blockInterval        ms
      * @param events
      * @param from
      * @param minInterval
@@ -71,7 +71,7 @@ public abstract class BaseScanner implements LogEventListener {
      *
      * @param web3j
      * @param currentBlockProvider
-     * @param blockInterval
+     * @param blockInterval        ms
      * @param events
      * @param from
      * @param minInterval

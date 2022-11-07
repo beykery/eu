@@ -5,6 +5,6 @@
 <dependency>
     <groupId>org.beykery</groupId>
     <artifactId>eu</artifactId>
-    <version>0.0.49</version>
+    <version>1.0.0</version>
 </dependency>
 ```

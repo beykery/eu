@@ -60,7 +60,7 @@ public class LogEventScanner implements Runnable {
     private boolean logFromTx;
 
     /**
-     * 出块间隔(second)
+     * 出块间隔(ms)
      */
     private long blockInterval;
 
@@ -296,7 +296,7 @@ public class LogEventScanner implements Runnable {
             scanning = false;
             throw new RuntimeException(ex);
         }
-        final long minInterval = this.minInterval == 0 ? 1000 * blockInterval / 10 : this.minInterval; // 最小间隔
+        final long minInterval = this.minInterval == 0 ? blockInterval / 10 : this.minInterval; // 最小间隔
         long latest = 0;
         from = from < 0 ? current : from; // from
         long step = 1;    // 步长
@@ -359,8 +359,8 @@ public class LogEventScanner implements Runnable {
                 log.debug("reach the highest block {}", t);
                 step = 1;
                 listener.onReachHighest(t);
-                long next = currentTime + blockInterval;
-                long delta = next * 1000 - System.currentTimeMillis();
+                long next = currentTime * 1000 + blockInterval;
+                long delta = next - System.currentTimeMillis();
                 if (delta > 0) {
                     log.debug("sleep for the next filter with {} milliseconds", delta);
                     try {
@@ -404,7 +404,7 @@ public class LogEventScanner implements Runnable {
     }
 
     /**
-     * 当前块高时间
+     * 当前块高时间(second)
      *
      * @return
      */
@@ -413,7 +413,7 @@ public class LogEventScanner implements Runnable {
     }
 
     /**
-     * 平均出块间隔
+     * 平均出块间隔(ms)
      *
      * @return
      */

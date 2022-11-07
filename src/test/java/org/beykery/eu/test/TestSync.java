@@ -70,8 +70,8 @@ public class TestSync {
         };
         String contract = "0xEec92107c67C9b6F0875329D7c6E177d864B49a4";
         //String node = "wss://emerald.oasis.dev/ws";
-        //String node = "https://emerald.oasis.dev";
-        String node = "https://rpc.emerald.oasis.doorgod.io:7545";
+        String node = "https://emerald.oasis.dev";
+        //String node = "https://rpc.emerald.oasis.doorgod.io:7545";
         Web3j web3j = EthContractUtil.getWeb3j(node);
         TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
         scanner.start(web3j, () -> {
@@ -80,7 +80,7 @@ public class TestSync {
 //            long latency = System.currentTimeMillis() - ret[1] * 1000;
 //            System.out.println("latency : " + latency);
             return ret;
-        }, 6, Arrays.asList(SYNC_EVENT), -1, 300, 0, 1, null);
+        }, 6000, Arrays.asList(SYNC_EVENT), -1, 300, 0, 1, null);
         Thread.sleep(24 * 3600 * 1000);
     }
 }
