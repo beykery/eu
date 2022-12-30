@@ -482,6 +482,18 @@ public class EthContractUtil {
     /**
      * for web3j
      *
+     * @param nodes
+     * @return
+     */
+    public static Web3j getWeb3j(List<String> nodes) {
+        Web3jService ws = new EuHttpService(nodes);
+        Web3j web3j = Web3j.build(ws, 3, Async.defaultExecutorService());
+        return web3j;
+    }
+
+    /**
+     * for web3j
+     *
      * @param node
      * @return
      */
