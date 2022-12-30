@@ -84,25 +84,34 @@ public class EuHttpService extends Service {
 
     private OkHttpClient httpClient;
 
-    private final String url;
+    private List<String> urls;
 
     private final boolean includeRawResponse;
 
     private HashMap<String, String> headers = new HashMap<>();
 
-    public EuHttpService(String url, OkHttpClient httpClient, boolean includeRawResponses) {
+    /**
+     * multi urls
+     *
+     * @param urls
+     */
+    public EuHttpService(List<String> urls) {
+        this(urls, createOkHttpClient(), false);
+    }
+
+    public EuHttpService(List<String> urls, OkHttpClient httpClient, boolean includeRawResponses) {
         super(includeRawResponses);
-        this.url = url;
+        this.urls = urls;
         this.httpClient = httpClient;
         this.includeRawResponse = includeRawResponses;
     }
 
     public EuHttpService(OkHttpClient httpClient, boolean includeRawResponses) {
-        this(DEFAULT_URL, httpClient, includeRawResponses);
+        this(Arrays.asList(DEFAULT_URL), httpClient, includeRawResponses);
     }
 
     public EuHttpService(String url, OkHttpClient httpClient) {
-        this(url, httpClient, false);
+        this(Arrays.asList(url), httpClient, false);
     }
 
     public EuHttpService(String url) {
@@ -110,7 +119,7 @@ public class EuHttpService extends Service {
     }
 
     public EuHttpService(String url, boolean includeRawResponse) {
-        this(url, createOkHttpClient(), includeRawResponse);
+        this(Arrays.asList(url), createOkHttpClient(), includeRawResponse);
     }
 
     public EuHttpService(OkHttpClient httpClient) {
@@ -222,9 +231,14 @@ public class EuHttpService extends Service {
         return headers;
     }
 
+    /**
+     * 随机选择一个url
+     *
+     * @return
+     */
     public String getUrl() {
-        long r = random.nextLong();
-        String old = url;
+        int r = random.nextInt(urls.size());
+        String old = urls.get(r);
         String u;
         if (old.indexOf('?') > 0) {
             u = old + "&eu=" + r;
