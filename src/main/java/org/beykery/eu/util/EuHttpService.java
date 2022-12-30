@@ -176,8 +176,7 @@ public class EuHttpService extends Service {
                 int code = response.code();
                 String text = responseBody == null ? "N/A" : responseBody.string();
 
-                throw new ClientConnectionException(
-                        "Invalid response received: " + code + "; " + text);
+                throw new ClientConnectionException(url + " Invalid response received: " + code + "; " + text);
             }
         }
     }
