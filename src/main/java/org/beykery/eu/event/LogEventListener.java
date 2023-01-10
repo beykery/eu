@@ -12,7 +12,7 @@ public interface LogEventListener {
      *
      * @param events
      */
-    void onLogEvents(List<LogEvent> events);
+    void onLogEvents(List<LogEvent> events, long from, long to, long current, long currentTime);
 
     /**
      * 扫描一段结束
@@ -21,7 +21,7 @@ public interface LogEventListener {
      * @param to
      * @param logSize
      */
-    void onOnceScanOver(long from, long to, long logSize);
+    void onOnceScanOver(long from, long to, long current, long currentTime, long logSize);
 
     /**
      * 达到最大高度
@@ -35,7 +35,7 @@ public interface LogEventListener {
      *
      * @param ex
      */
-    void onError(Throwable ex);
+    void onError(Throwable ex, long from, long to, long current, long currentTime);
 
     /**
      * 事件顺序是否翻转

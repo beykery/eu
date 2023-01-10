@@ -13,7 +13,6 @@ import org.web3j.tx.ReadonlyTransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
 
 import java.math.BigInteger;
-import java.net.ConnectException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,27 +29,24 @@ public class TestSync {
     );
 
     @Test
-    void syncTest() throws InterruptedException, ConnectException {
+    void syncTest() throws InterruptedException {
 
         BaseScanner scanner = new BaseScanner() {
             @Override
-            public void onLogEvents(List<LogEvent> events) {
+            public void onLogEvents(List<LogEvent> events, long from, long to, long current, long currentTime) {
+                System.out.println(from + " " + to + " " + current + " " + (current - to));
+                System.out.println("elapsed from top block " + (System.currentTimeMillis() - currentTime * 1000));
                 for (LogEvent e : events) {
                     long block = e.getBlockNumber();
-                    long time = e.getBlockTimestamp();
-                    long delta = System.currentTimeMillis() - time * 1000;
-//                    System.out.println(block + " : " + delta);
                     Uint112 r0 = (Uint112) e.getNonIndexedValues().get(0);
                     Uint112 r1 = (Uint112) e.getNonIndexedValues().get(1);
                     String pairAddress = e.getContract();
-                    System.out.println(block + " : " + e.getLogIndex() + " : " + pairAddress + " : " + r0.getValue() + " : " + r1.getValue() + " : " + delta);
-//                    System.out.println(this.getScanner().getCurrent() + " : " + block);
+                    System.out.println(block + " : " + e.getLogIndex() + " : " + pairAddress + " : " + r0.getValue() + " : " + r1.getValue());
                 }
             }
 
             @Override
-            public void onOnceScanOver(long from, long to, long logSize) {
-
+            public void onOnceScanOver(long from, long to, long current, long currentTime, long logSize) {
             }
 
             @Override
@@ -59,7 +55,7 @@ public class TestSync {
             }
 
             @Override
-            public void onError(Throwable ex) {
+            public void onError(Throwable ex, long from, long to, long current, long currentTime) {
 
             }
 
@@ -68,19 +64,37 @@ public class TestSync {
                 return false;
             }
         };
-        String contract = "0xEec92107c67C9b6F0875329D7c6E177d864B49a4";
-        //String node = "wss://emerald.oasis.dev/ws";
-        String node = "https://emerald.oasis.dev";
-        //String node = "https://rpc.emerald.oasis.doorgod.io:7545";
-        Web3j web3j = EthContractUtil.getWeb3j(node);
+        String contract = "0xDecCfF0273Ec47D913Dd88eAb45d1c00F1be26aF";
+        String[] nodes = new String[]{
+                "https://rpc.dogechain.dog",
+                "https://dogechain.ankr.com",
+                "https://rpc-us.dogechain.dog",
+                "https://rpc-sg.dogechain.dog",
+                "https://rpc01-sg.dogechain.dog",
+                "https://rpc02-sg.dogechain.dog",
+                "https://rpc03-sg.dogechain.dog",
+        };
+        Web3j web3j = EthContractUtil.getWeb3j(Arrays.asList(nodes));
         TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
-        scanner.start(web3j, () -> {
-            Tuple2<BigInteger, BigInteger> t2 = testContract.currentBlockInfo().send();
-            long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
-//            long latency = System.currentTimeMillis() - ret[1] * 1000;
-//            System.out.println("latency : " + latency);
-            return ret;
-        }, 6000, Arrays.asList(SYNC_EVENT), -1, 300, 0, 1, null);
+
+        scanner.start(
+                web3j,
+                () -> {
+                    Tuple2<BigInteger, BigInteger> t2 = testContract.currentBlockInfo().send();
+                    long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
+                    return ret;
+                },
+                2000,
+                Arrays.asList(SYNC_EVENT),
+                -1,
+                100,
+                0,
+                1,
+                0,
+                100,
+                false,
+                null
+        );
         Thread.sleep(24 * 3600 * 1000);
     }
 }

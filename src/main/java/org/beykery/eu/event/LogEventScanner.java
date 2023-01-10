@@ -314,7 +314,6 @@ public class LogEventScanner implements Runnable {
                     try {
                         les = EthContractUtil.getLogEvents(web3j, f, t, events, contracts, logFromTx);
                         if (les.isEmpty()) {
-                            maxRetry = 2;
                             retry++;
                             if (retry <= maxRetry) {
                                 try {
@@ -327,9 +326,9 @@ public class LogEventScanner implements Runnable {
                         }
                     } catch (Throwable ex) {
                         retry++;
-                        maxRetry = this.maxRetry;
+                        maxRetry = Math.max(this.maxRetry, 1);
                         log.error("fetch logs error from {} to {} with {} retry", f, t, retry);
-                        listener.onError(ex);
+                        listener.onError(ex, f, t, current, currentTime);
                         step = 1;
                         if (retry <= maxRetry) {
                             try {
@@ -344,8 +343,8 @@ public class LogEventScanner implements Runnable {
                 if (logSize > 0 && listener.reverse()) {
                     Collections.reverse(les);
                 }
-                listener.onLogEvents(les);
-                listener.onOnceScanOver(f, t, logSize);
+                listener.onLogEvents(les, f, t, current, currentTime);
+                listener.onOnceScanOver(f, t, current, currentTime, logSize);
                 f = t + 1;  // to the next loop
                 // step adjust
                 long targetSize = 1024 * 4;
@@ -384,7 +383,7 @@ public class LogEventScanner implements Runnable {
                         current = c[0];
                         currentTime = c[1];
                     } else if (c[0] < current) {
-                        log.debug("block {} less than current block {}, ignore it .", c[0], current);
+                        log.warn("block {} less than current block {}, ignore it .", c[0], current);
                         Thread.sleep(averageBlockInterval);
                     }
                 } catch (Exception ex) {

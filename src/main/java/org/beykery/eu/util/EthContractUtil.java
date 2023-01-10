@@ -1313,7 +1313,7 @@ public class EthContractUtil {
 
                     EventValues values = Contract.staticExtractEventParameters(event, item);
 
-                    // 通知listener
+                    // build log event
                     LogEvent le = LogEvent.builder()
                             .event(event)
                             .transactionHash(tx)
