@@ -521,6 +521,20 @@ public class EthContractUtil {
     }
 
     /**
+     * nodes with polling interval
+     *
+     * @param nodes
+     * @param pollingInterval
+     * @return
+     * @throws ConnectException
+     */
+    public static Web3j getWeb3j(List<String> nodes, long pollingInterval) {
+        Web3jService ws = new EuHttpService(nodes);
+        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
+        return web3j;
+    }
+
+    /**
      * web3j
      *
      * @param okClient
@@ -535,6 +549,21 @@ public class EthContractUtil {
         } else {
             ws = new EuHttpService(node, okClient);
         }
+        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
+        return web3j;
+    }
+
+    /**
+     * nodes with client and polling interval
+     *
+     * @param nodes
+     * @param okClient
+     * @param pollingInterval
+     * @return
+     * @throws ConnectException
+     */
+    public static Web3j getWeb3j(List<String> nodes, OkHttpClient okClient, long pollingInterval) {
+        Web3jService ws = new EuHttpService(nodes, okClient, false);
         Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
         return web3j;
     }

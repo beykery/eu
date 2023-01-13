@@ -376,15 +376,13 @@ public class LogEventScanner implements Runnable {
                 }
                 try {
                     long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
-                    if (c[0] == current + 1) {
-                        this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + (c[1] - currentTime) * 1000 * sensitivity);
-                    }
                     if (c[0] > current) {
+                        this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + 1000.0 * (c[1] - currentTime) / (c[0] - current) * sensitivity);
                         current = c[0];
                         currentTime = c[1];
                     } else if (c[0] < current) {
-                        log.warn("block {} less than current block {}, ignore it .", c[0], current);
-                        Thread.sleep(averageBlockInterval);
+                        log.debug("block {} less than current block {}, ignore it .", c[0], current);
+                        Thread.sleep(minInterval);
                     }
                 } catch (Exception ex) {
                     log.error("fetch the current block number and timestamp failed");
