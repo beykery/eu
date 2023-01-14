@@ -238,13 +238,14 @@ public class EuHttpService extends Service {
     public String getUrl() {
         int r = random.nextInt(urls.size());
         String old = urls.get(r);
-        String u;
-        if (old.indexOf('?') > 0) {
-            u = old + "&eu=" + r;
-        } else {
-            u = old + "?eu=" + r;
-        }
-        return u;
+        return old;
+//        String u;
+//        if (old.indexOf('?') > 0) {
+//            u = old + "&eu=" + r;
+//        } else {
+//            u = old + "?eu=" + r;
+//        }
+//        return u;
     }
 
     @Override
