@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static okhttp3.ConnectionSpec.CLEARTEXT;
 
@@ -106,6 +107,16 @@ public class EuHttpService extends Service {
         this.includeRawResponse = includeRawResponses;
     }
 
+    /**
+     * with client config
+     *
+     * @param urls
+     * @param httpClient
+     */
+    public EuHttpService(List<String> urls, OkHttpClient httpClient) {
+        this(urls, httpClient, false);
+    }
+
     public EuHttpService(OkHttpClient httpClient, boolean includeRawResponses) {
         this(Arrays.asList(DEFAULT_URL), httpClient, includeRawResponses);
     }
@@ -141,8 +152,30 @@ public class EuHttpService extends Service {
         return builder;
     }
 
-    private static OkHttpClient createOkHttpClient() {
-        return getOkHttpClientBuilder().build();
+    /**
+     * with default client config
+     *
+     * @return
+     */
+    public static OkHttpClient createOkHttpClient() {
+        OkHttpClient client = getOkHttpClientBuilder().build();
+        return client;
+    }
+
+    /**
+     * timeout for ok http client
+     *
+     * @param connectTimeout
+     * @param readTimeout
+     * @param writeTimeout
+     * @return
+     */
+    public static OkHttpClient createOkHttpClient(long connectTimeout, long readTimeout, long writeTimeout) {
+        return getOkHttpClientBuilder()
+                .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
+                .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
+                .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
+                .build();
     }
 
     private static void configureLogging(OkHttpClient.Builder builder) {
