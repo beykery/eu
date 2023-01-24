@@ -1,5 +1,7 @@
 package org.beykery.eu.event;
 
+import org.web3j.protocol.core.methods.response.Transaction;
+
 import java.util.List;
 
 /**
@@ -13,6 +15,17 @@ public interface LogEventListener {
      * @param events
      */
     void onLogEvents(List<LogEvent> events, long from, long to, long current, long currentTime);
+
+    /**
+     * pending transactions
+     *
+     * @param txs
+     * @param from
+     * @param to
+     * @param current
+     * @param currentTime
+     */
+    void onPendingTransactions(List<Transaction> txs, long from, long to, long current, long currentTime);
 
     /**
      * 扫描一段结束

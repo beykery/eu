@@ -8,6 +8,7 @@ import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.generated.Uint112;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.Transaction;
 import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.ReadonlyTransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
@@ -46,6 +47,12 @@ public class TestSync {
             }
 
             @Override
+            public void onPendingTransactions(List<Transaction> txs, long from, long to, long current, long currentTime) {
+                int size = txs == null ? 0 : txs.size();
+                System.out.println("pending txs : " + size);
+            }
+
+            @Override
             public void onOnceScanOver(long from, long to, long current, long currentTime, long logSize) {
             }
 
@@ -64,15 +71,9 @@ public class TestSync {
                 return false;
             }
         };
-        String contract = "0xDecCfF0273Ec47D913Dd88eAb45d1c00F1be26aF";
+        String contract = "0xd7949d18f0d2Aa402fD2F0edcDCeA9d5a4B3712E";
         String[] nodes = new String[]{
-                "https://rpc.dogechain.dog",
-                "https://dogechain.ankr.com",
-                "https://rpc-us.dogechain.dog",
-                "https://rpc-sg.dogechain.dog",
-                "https://rpc01-sg.dogechain.dog",
-                "https://rpc02-sg.dogechain.dog",
-                "https://rpc03-sg.dogechain.dog",
+                "https://nodes.vefinetwork.org/bitgert"
         };
         Web3j web3j = EthContractUtil.getWeb3j(Arrays.asList(nodes));
         TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
@@ -84,7 +85,8 @@ public class TestSync {
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
                     return ret;
                 },
-                2000,
+                15000,
+                11000,
                 Arrays.asList(SYNC_EVENT),
                 -1,
                 100,

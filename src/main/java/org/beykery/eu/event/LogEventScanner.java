@@ -7,6 +7,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.methods.response.EthChainId;
+import org.web3j.protocol.core.methods.response.Transaction;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -63,6 +64,11 @@ public class LogEventScanner implements Runnable {
      * 出块间隔(ms)
      */
     private long blockInterval;
+
+    /**
+     * pending transactions fetch at
+     */
+    private long pendingTxAt;
 
     /**
      * 最新块的最小获取间隔(ms)
@@ -145,6 +151,25 @@ public class LogEventScanner implements Runnable {
         this.maxRetry = maxRetry;
         this.retryInterval = retryInterval;
         this.logFromTx = logFromTx;
+    }
+
+    /**
+     * @param web3j
+     * @param blockInterval
+     * @param pendingTxAt   pending transactions at
+     * @param maxRetry
+     * @param retryInterval
+     * @param logFromTx
+     * @param listener
+     */
+    public LogEventScanner(Web3j web3j, long blockInterval, long pendingTxAt, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
+        this.web3j = web3j;
+        this.blockInterval = blockInterval;
+        this.listener = listener;
+        this.maxRetry = maxRetry;
+        this.retryInterval = retryInterval;
+        this.logFromTx = logFromTx;
+        this.pendingTxAt = pendingTxAt;
     }
 
     /**
@@ -359,6 +384,18 @@ public class LogEventScanner implements Runnable {
                 step = 1;
                 listener.onReachHighest(t);
                 long next = currentTime * 1000 + blockInterval;
+                if (pendingTxAt > 0) {
+                    long nextPending = next - (blockInterval - pendingTxAt);
+                    long pendingDelta = nextPending - System.currentTimeMillis();
+                    if (pendingDelta > 0) {
+                        try {
+                            Thread.sleep(pendingDelta);
+                        } catch (Exception x) {
+                        }
+                        List<Transaction> pendingTxs = pendingTxs(3);
+                        listener.onPendingTransactions(pendingTxs, f, t, current, currentTime);
+                    }
+                }
                 long delta = next - System.currentTimeMillis();
                 if (delta > 0) {
                     log.debug("sleep for the next filter with {} milliseconds", delta);
@@ -389,6 +426,27 @@ public class LogEventScanner implements Runnable {
                 }
                 latest = System.currentTimeMillis();
             }
+        }
+    }
+
+    private BigInteger fid;
+
+    /**
+     * pending txs
+     *
+     * @return
+     */
+    private List<Transaction> pendingTxs(int parallel) {
+        try {
+            if (fid == null) {
+                fid = EthContractUtil.newPendingTransactionFilterId(web3j);
+            }
+            List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, parallel);
+            return txs;
+        } catch (Exception ex) {
+            log.error("fetch pending transactions error", ex);
+            fid = null;
+            return null;
         }
     }
 
