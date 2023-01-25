@@ -114,6 +114,18 @@ public class LogEventScanner implements Runnable {
      * retry sleep (ms)
      */
     private long retryInterval;
+    /**
+     * 最高块处f
+     */
+    private long preF;
+    /**
+     * 最高块处t
+     */
+    private long preT;
+    /**
+     * 最高块处events
+     */
+    private List<LogEvent> preLogEvents;
 
     /**
      * init
@@ -368,9 +380,16 @@ public class LogEventScanner implements Runnable {
                 if (logSize > 0 && listener.reverse()) {
                     Collections.reverse(les);
                 }
-                listener.onLogEvents(les, f, t, current, currentTime);
-                listener.onOnceScanOver(f, t, current, currentTime, logSize);
+                long preF = f;
                 f = t + 1;  // to the next loop
+                if (pendingTxAt > 0 && f > t) {  // 如果到达最高块则缓存当前的log
+                    this.preF = preF;
+                    this.preT = t;
+                    this.preLogEvents = les;
+                } else {                         // 未到达最高块则直接通知
+                    listener.onLogEvents(les, preF, t, current, currentTime);
+                    listener.onOnceScanOver(preF, t, current, currentTime, logSize);
+                }
                 // step adjust
                 long targetSize = 1024 * 4;
                 long maxStep = 1024;
@@ -385,16 +404,17 @@ public class LogEventScanner implements Runnable {
                 listener.onReachHighest(t);
                 long next = currentTime * 1000 + blockInterval;
                 if (pendingTxAt > 0) {
-                    long nextPending = next - (blockInterval - pendingTxAt);
+                    List<Transaction> pendingTxs = null;
+                    long nextPending = next - blockInterval + pendingTxAt;
                     long pendingDelta = nextPending - System.currentTimeMillis();
                     if (pendingDelta > 0) {
                         try {
                             Thread.sleep(pendingDelta);
                         } catch (Exception x) {
                         }
-                        List<Transaction> pendingTxs = pendingTxs(3);
-                        listener.onPendingTransactions(pendingTxs, f, t, current, currentTime);
+                        pendingTxs = pendingTxs(3);
                     }
+                    listener.onPendingTransactions(preLogEvents, pendingTxs == null ? Collections.EMPTY_LIST : pendingTxs, preF, preT, current, currentTime);
                 }
                 long delta = next - System.currentTimeMillis();
                 if (delta > 0) {

@@ -25,7 +25,7 @@ public interface LogEventListener {
      * @param current
      * @param currentTime
      */
-    void onPendingTransactions(List<Transaction> txs, long from, long to, long current, long currentTime);
+    void onPendingTransactions(List<LogEvent> logs, List<Transaction> txs, long from, long to, long current, long currentTime);
 
     /**
      * 扫描一段结束
