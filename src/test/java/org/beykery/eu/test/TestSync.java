@@ -52,6 +52,7 @@ public class TestSync {
                 System.out.println("logs  : " + logs.size());
                 long elapsed = System.currentTimeMillis() - currentTime * 1000;
                 System.out.println("elapsed: " + elapsed);
+                System.out.println("------" + current + "------");
             }
 
             @Override
@@ -88,7 +89,7 @@ public class TestSync {
                     return ret;
                 },
                 15000,
-                11000,
+                9000,
                 Arrays.asList(SYNC_EVENT),
                 -1,
                 10,

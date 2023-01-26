@@ -1,5 +1,6 @@
 package org.beykery.eu.util;
 
+import com.github.ferstl.streams.ParallelIntStreamSupport;
 import com.github.ferstl.streams.ParallelStreamSupport;
 import okhttp3.OkHttpClient;
 import org.beykery.eu.event.LogEvent;
@@ -31,6 +32,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -1114,6 +1116,31 @@ public class EthContractUtil {
     }
 
     /**
+     * pending txs
+     *
+     * @param web3j
+     * @param filterId
+     * @return
+     * @throws Exception
+     */
+    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId) throws Exception {
+        return pendingTransactions(web3j, filterId, 3, 50);
+    }
+
+    /**
+     * pending txs
+     *
+     * @param web3j
+     * @param filterId
+     * @param parallel
+     * @return
+     * @throws Exception
+     */
+    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel) throws Exception {
+        return pendingTransactions(web3j, filterId, parallel, 50);
+    }
+
+    /**
      * pending transactions
      *
      * @param web3j
@@ -1121,7 +1148,7 @@ public class EthContractUtil {
      * @param parallel
      * @return
      */
-    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel) throws IOException {
+    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel, int batchSize) throws Exception {
         EthLog log = web3j.ethGetFilterChanges(filterId).send();
         List<EthLog.LogResult> ls = log.getLogs();
         if (ls != null && ls.size() > 0) {
@@ -1130,20 +1157,34 @@ public class EthContractUtil {
                     POOL = new ForkJoinPool(parallel);
                 }
             }
-            Stream<EthLog.LogResult> stream = parallel > 1 ? ParallelStreamSupport.parallelStream(ls, POOL) : ls.stream();
-            List<org.web3j.protocol.core.methods.response.Transaction> ret = stream.map(item -> {
-                org.web3j.protocol.core.methods.response.Transaction tx = null;
-                try {
-                    String hash = item.get().toString();
-                    EthTransaction et = web3j.ethGetTransactionByHash(hash).send();
-                    if (et.getTransaction().isPresent()) {
-                        tx = et.getTransaction().get();
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
+            batchSize = batchSize <= 0 ? 50 : batchSize;
+            int group = ls.size() % batchSize == 0 ? (ls.size() / batchSize) : (ls.size() / batchSize + 1);
+            if (group == 0) {
+                group++;
+            }
+            final int finalBatchSize = batchSize;
+            IntStream stream = (parallel > 1 && group > 1) ? ParallelIntStreamSupport.range(0, group, POOL) : IntStream.range(0, group);
+            List<List<EthTransaction>> list = stream.mapToObj(g -> {
+                int start = g * finalBatchSize;
+                int end = start + finalBatchSize;
+                if (end > ls.size()) {
+                    end = ls.size();
                 }
-                return tx;
+                BatchRequest request = batchRequest(web3j);
+                for (int i = start; i < end; i++) {
+                    String hash = ls.get(i).toString();
+                    request.add(web3j.ethGetTransactionByHash(hash));
+                }
+                try {
+                    BatchResponse response = request.send();
+                    List<EthTransaction> responses = (List<EthTransaction>) response.getResponses();
+                    return responses;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }).filter(Objects::nonNull).collect(Collectors.toList());
+            List<org.web3j.protocol.core.methods.response.Transaction> ret = new ArrayList<>();
+            list.forEach(item -> item.forEach(r -> ret.add(r.getResult())));
             ret.sort((t1, t2) -> t2.getGasPrice().compareTo(t1.getGasPrice()));
             return ret;
         }

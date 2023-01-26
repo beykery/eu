@@ -399,11 +399,10 @@ public class LogEventScanner implements Runnable {
             }
             // reach 't' height
             else {
-                log.debug("reach the highest block {}", t);
-                step = 1;
                 listener.onReachHighest(t);
+                step = 1;
                 long next = currentTime * 1000 + blockInterval;
-                if (pendingTxAt > 0) {
+                if (pendingTxAt > 0 && preLogEvents != null) { // 只通知一次
                     List<Transaction> pendingTxs = null;
                     long nextPending = next - blockInterval + pendingTxAt;
                     long pendingDelta = nextPending - System.currentTimeMillis();
@@ -412,9 +411,10 @@ public class LogEventScanner implements Runnable {
                             Thread.sleep(pendingDelta);
                         } catch (Exception x) {
                         }
-                        pendingTxs = pendingTxs(3);
+                        pendingTxs = pendingTxs(3, 50);
                     }
                     listener.onPendingTransactions(preLogEvents, pendingTxs == null ? Collections.EMPTY_LIST : pendingTxs, preF, preT, current, currentTime);
+                    preLogEvents = null;
                 }
                 long delta = next - System.currentTimeMillis();
                 if (delta > 0) {
@@ -456,12 +456,12 @@ public class LogEventScanner implements Runnable {
      *
      * @return
      */
-    private List<Transaction> pendingTxs(int parallel) {
+    private List<Transaction> pendingTxs(int parallel, int batchSize) {
         try {
             if (fid == null) {
                 fid = EthContractUtil.newPendingTransactionFilterId(web3j);
             }
-            List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, parallel);
+            List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, parallel, batchSize);
             return txs;
         } catch (Exception ex) {
             log.error("fetch pending transactions error", ex);
