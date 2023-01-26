@@ -71,6 +71,16 @@ public class LogEventScanner implements Runnable {
     private long pendingTxAt;
 
     /**
+     * pending tx parallel
+     */
+    private int pendingParallel;
+
+    /**
+     * pending tx batch size
+     */
+    private int pendingBatchSize;
+
+    /**
      * 最新块的最小获取间隔(ms)
      */
     private long minInterval;
@@ -182,6 +192,31 @@ public class LogEventScanner implements Runnable {
         this.retryInterval = retryInterval;
         this.logFromTx = logFromTx;
         this.pendingTxAt = pendingTxAt;
+    }
+
+    /**
+     * log event scanner
+     *
+     * @param web3j
+     * @param blockInterval
+     * @param pendingTxAt
+     * @param pendingParallel
+     * @param pendingBatchSize
+     * @param maxRetry
+     * @param retryInterval
+     * @param logFromTx
+     * @param listener
+     */
+    public LogEventScanner(Web3j web3j, long blockInterval, long pendingTxAt, int pendingParallel, int pendingBatchSize, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
+        this.web3j = web3j;
+        this.blockInterval = blockInterval;
+        this.listener = listener;
+        this.maxRetry = maxRetry;
+        this.retryInterval = retryInterval;
+        this.logFromTx = logFromTx;
+        this.pendingTxAt = pendingTxAt;
+        this.pendingParallel = pendingParallel;
+        this.pendingBatchSize = pendingBatchSize;
     }
 
     /**
@@ -403,7 +438,7 @@ public class LogEventScanner implements Runnable {
                 step = 1;
                 long next = currentTime * 1000 + blockInterval;
                 if (pendingTxAt > 0 && preLogEvents != null) { // 只通知一次
-                    List<Transaction> pendingTxs = null;
+                    List<Transaction> pendingTxs = Collections.EMPTY_LIST;
                     long nextPending = next - blockInterval + pendingTxAt;
                     long pendingDelta = nextPending - System.currentTimeMillis();
                     if (pendingDelta > 0) {
@@ -411,9 +446,9 @@ public class LogEventScanner implements Runnable {
                             Thread.sleep(pendingDelta);
                         } catch (Exception x) {
                         }
-                        pendingTxs = pendingTxs(3, 50);
+                        pendingTxs = pendingTxs();
                     }
-                    listener.onPendingTransactions(preLogEvents, pendingTxs == null ? Collections.EMPTY_LIST : pendingTxs, preF, preT, current, currentTime);
+                    listener.onPendingTransactions(preLogEvents, pendingTxs, preF, preT, current, currentTime);
                     preLogEvents = null;
                 }
                 long delta = next - System.currentTimeMillis();
@@ -456,12 +491,12 @@ public class LogEventScanner implements Runnable {
      *
      * @return
      */
-    private List<Transaction> pendingTxs(int parallel, int batchSize) {
+    private List<Transaction> pendingTxs() {
         try {
             if (fid == null) {
                 fid = EthContractUtil.newPendingTransactionFilterId(web3j);
             }
-            List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, parallel, batchSize);
+            List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize <= 0 ? 50 : pendingBatchSize);
             return txs;
         } catch (Exception ex) {
             log.error("fetch pending transactions error", ex);

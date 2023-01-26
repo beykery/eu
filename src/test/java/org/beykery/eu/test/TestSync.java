@@ -90,6 +90,8 @@ public class TestSync {
                 },
                 15000,
                 9000,
+                3,
+                100,
                 Arrays.asList(SYNC_EVENT),
                 -1,
                 10,

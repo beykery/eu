@@ -122,6 +122,36 @@ public abstract class BaseScanner implements LogEventListener {
     }
 
     /**
+     * start scan
+     *
+     * @param web3j
+     * @param currentBlockProvider
+     * @param blockInterval
+     * @param pendingTxAt
+     * @param pendingParallel
+     * @param pendingBatchSize
+     * @param events
+     * @param from
+     * @param minInterval
+     * @param sensitivity
+     * @param step
+     * @param maxRetry
+     * @param retryInterval
+     * @param logFromTx
+     * @param contracts
+     * @return
+     */
+    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, long pendingTxAt, int pendingParallel, int pendingBatchSize, List<Event> events, long from, long minInterval, double sensitivity, long step, int maxRetry, long retryInterval, boolean logFromTx, String... contracts) {
+        if (scanner == null) {
+            this.from = from;
+            this.contracts = contracts;
+            scanner = new LogEventScanner(web3j, blockInterval, pendingTxAt, pendingParallel, pendingBatchSize, maxRetry, retryInterval, logFromTx, this);
+            return scanner.start(this.from, events, contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, minInterval, sensitivity, step);
+        }
+        return false;
+    }
+
+    /**
      * stop scan
      */
     public void stop() {

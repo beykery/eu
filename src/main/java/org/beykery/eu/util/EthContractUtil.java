@@ -1172,7 +1172,7 @@ public class EthContractUtil {
                 }
                 BatchRequest request = batchRequest(web3j);
                 for (int i = start; i < end; i++) {
-                    String hash = ls.get(i).toString();
+                    String hash = ls.get(i).get().toString();
                     request.add(web3j.ethGetTransactionByHash(hash));
                 }
                 try {
@@ -1185,7 +1185,17 @@ public class EthContractUtil {
             }).filter(Objects::nonNull).collect(Collectors.toList());
             List<org.web3j.protocol.core.methods.response.Transaction> ret = new ArrayList<>();
             list.forEach(item -> item.forEach(r -> ret.add(r.getResult())));
-            ret.sort((t1, t2) -> t2.getGasPrice().compareTo(t1.getGasPrice()));
+            ret.sort((t1, t2) -> {
+                BigInteger price1 = t1.getGasPrice();
+                if (price1 == null) {
+                    price1 = t1.getMaxFeePerGas();
+                }
+                BigInteger price2 = t2.getGasPrice();
+                if (price2 == null) {
+                    price2 = t2.getMaxFeePerGas();
+                }
+                return price2.compareTo(price1);
+            });
             return ret;
         }
         return Collections.EMPTY_LIST;
