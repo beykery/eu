@@ -417,14 +417,15 @@ public class LogEventScanner implements Runnable {
                 }
                 long preF = f;
                 f = t + 1;  // to the next loop
-                if (pendingTxAt > 0 && f > t) {  // 如果到达最高块则缓存当前的log
+                if (pendingTxAt > 0 && f > t) {  // 如果到达最高块则缓存当前的log, pending tx 被通知的时候，log作为上下文一起通知
                     this.preF = preF;
                     this.preT = t;
                     this.preLogEvents = les;
-                } else {                         // 未到达最高块则直接通知
-                    listener.onLogEvents(les, preF, t, current, currentTime);
-                    listener.onOnceScanOver(preF, t, current, currentTime, logSize);
                 }
+                // 通知
+                listener.onLogEvents(les, preF, t, current, currentTime);
+                listener.onOnceScanOver(preF, t, current, currentTime, logSize);
+
                 // step adjust
                 long targetSize = 1024 * 4;
                 long maxStep = 1024;
@@ -438,22 +439,20 @@ public class LogEventScanner implements Runnable {
                 step = 1;
                 long next = currentTime * 1000 + blockInterval;
                 if (pendingTxAt > 0 && preLogEvents != null) { // 只通知一次
-                    List<Transaction> pendingTxs = Collections.EMPTY_LIST;
                     long nextPending = next - blockInterval + pendingTxAt;
-                    long pendingDelta = nextPending - System.currentTimeMillis();
+                    long pendingDelta = Math.abs(nextPending + blockInterval - System.currentTimeMillis()) % blockInterval;
                     if (pendingDelta > 0) {
                         try {
                             Thread.sleep(pendingDelta);
                         } catch (Exception x) {
                         }
-                        pendingTxs = pendingTxs();
                     }
+                    List<Transaction> pendingTxs = pendingTxs();
                     listener.onPendingTransactions(preLogEvents, pendingTxs, preF, preT, current, currentTime);
                     preLogEvents = null;
                 }
                 long delta = next - System.currentTimeMillis();
                 if (delta > 0) {
-                    log.debug("sleep for the next filter with {} milliseconds", delta);
                     try {
                         Thread.sleep(delta);
                     } catch (Exception x) {
@@ -501,7 +500,7 @@ public class LogEventScanner implements Runnable {
         } catch (Exception ex) {
             log.error("fetch pending transactions error", ex);
             fid = null;
-            return null;
+            return Collections.EMPTY_LIST;
         }
     }
 

@@ -35,8 +35,7 @@ public class TestSync {
         BaseScanner scanner = new BaseScanner() {
             @Override
             public void onLogEvents(List<LogEvent> events, long from, long to, long current, long currentTime) {
-                System.out.println(from + " " + to + " " + current + " " + (current - to));
-                System.out.println("elapsed from top block " + (System.currentTimeMillis() - currentTime * 1000));
+                System.out.println("log events elapsed from top block " + (System.currentTimeMillis() - currentTime * 1000));
                 for (LogEvent e : events) {
                     long block = e.getBlockNumber();
                     Uint112 r0 = (Uint112) e.getNonIndexedValues().get(0);
@@ -44,6 +43,7 @@ public class TestSync {
                     String pairAddress = e.getContract();
                     System.out.println(block + " : " + e.getLogIndex() + " : " + pairAddress + " : " + r0.getValue() + " : " + r1.getValue());
                 }
+                System.out.println("---onLogEvents---");
             }
 
             @Override
@@ -51,8 +51,8 @@ public class TestSync {
                 System.out.println("pending txs : " + txs.size());
                 System.out.println("logs  : " + logs.size());
                 long elapsed = System.currentTimeMillis() - currentTime * 1000;
-                System.out.println("elapsed: " + elapsed);
-                System.out.println("------" + current + "------");
+                System.out.println("pending txs elapsed: " + elapsed);
+                System.out.println("---onPendingTransactions---");
             }
 
             @Override
@@ -74,9 +74,12 @@ public class TestSync {
                 return false;
             }
         };
-        String contract = "0xd7949d18f0d2Aa402fD2F0edcDCeA9d5a4B3712E";
+        //String contract = "0xd7949d18f0d2Aa402fD2F0edcDCeA9d5a4B3712E";
+        String contract = "0x786dFc0FCB898575805823301B713baf05CDc93c";
         String[] nodes = new String[]{
-                "https://nodes.vefinetwork.org/bitgert"
+                //"https://nodes.vefinetwork.org/bitgert"
+                "https://api.harmony.one",
+                "https://harmony-0-rpc.gateway.pokt.network",
         };
         Web3j web3j = EthContractUtil.getWeb3j(Arrays.asList(nodes));
         TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
@@ -88,8 +91,8 @@ public class TestSync {
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
                     return ret;
                 },
-                15000,
-                9000,
+                2000,
+                1300,
                 3,
                 100,
                 Arrays.asList(SYNC_EVENT),
