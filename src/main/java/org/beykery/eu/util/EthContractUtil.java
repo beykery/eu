@@ -1,7 +1,6 @@
 package org.beykery.eu.util;
 
 import com.github.ferstl.streams.ParallelIntStreamSupport;
-import com.github.ferstl.streams.ParallelStreamSupport;
 import okhttp3.OkHttpClient;
 import org.beykery.eu.event.LogEvent;
 import org.web3j.abi.*;
@@ -65,8 +64,12 @@ public class EthContractUtil {
     public static List<Type> call(Web3j web3j, Function function, String contractAddress) throws Exception {
         String encodedFunction = FunctionEncoder.encode(function);
         EthCall response = web3j.ethCall(
-                        Transaction.createEthCallTransaction(DEFAULT_FROM, contractAddress, encodedFunction), DefaultBlockParameterName.LATEST)
-                .sendAsync().get();
+                        Transaction.createEthCallTransaction(DEFAULT_FROM, contractAddress, encodedFunction), DefaultBlockParameterName.LATEST
+                )
+                .send();
+        if (response.hasError()) {
+            throw new RuntimeException(response.getError().getCode() + " : " + response.getError().getMessage());
+        }
         String res = response.getValue();
         List<Type> ts = FunctionReturnDecoder.decode(res, function.getOutputParameters());
         return ts;
