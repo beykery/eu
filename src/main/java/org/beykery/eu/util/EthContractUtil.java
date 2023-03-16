@@ -1187,7 +1187,12 @@ public class EthContractUtil {
                 }
             }).filter(Objects::nonNull).collect(Collectors.toList());
             List<org.web3j.protocol.core.methods.response.Transaction> ret = new ArrayList<>();
-            list.forEach(item -> item.forEach(r -> ret.add(r.getResult())));
+            list.forEach(item -> item.forEach(r -> {
+                org.web3j.protocol.core.methods.response.Transaction t = r.getResult();
+                if (t != null) {
+                    ret.add(r.getResult());
+                }
+            }));
             ret.sort((t1, t2) -> {
                 BigInteger price1 = t1.getGasPrice();
                 if (price1 == null) {
