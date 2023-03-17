@@ -1,6 +1,7 @@
 package org.beykery.eu.util;
 
 import com.github.ferstl.streams.ParallelIntStreamSupport;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.beykery.eu.event.LogEvent;
 import org.web3j.abi.*;
@@ -37,6 +38,7 @@ import java.util.stream.Stream;
 /**
  * eth合约工具
  */
+@Slf4j
 public class EthContractUtil {
 
     /**
@@ -1152,8 +1154,8 @@ public class EthContractUtil {
      * @return
      */
     public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel, int batchSize) throws Exception {
-        EthLog log = web3j.ethGetFilterChanges(filterId).send();
-        List<EthLog.LogResult> ls = log.getLogs();
+        EthLog logs = web3j.ethGetFilterChanges(filterId).send();
+        List<EthLog.LogResult> ls = logs.getLogs();
         if (ls != null && ls.size() > 0) {
             if (parallel > 1) {
                 if (POOL == null || POOL.getParallelism() != parallel) {
@@ -1193,6 +1195,9 @@ public class EthContractUtil {
                     ret.add(r.getResult());
                 }
             }));
+            if (ret.size() != ls.size()) {
+                log.warn("{} fetched with {} total pxs", ret.size(), ls.size());
+            }
             ret.sort((t1, t2) -> {
                 BigInteger price1 = t1.getGasPrice();
                 if (price1 == null) {
