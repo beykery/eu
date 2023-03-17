@@ -440,7 +440,8 @@ public class LogEventScanner implements Runnable {
                 long next = currentTime * 1000 + blockInterval;
                 if (pendingTxAt > 0 && preLogEvents != null) { // 只通知一次
                     long nextPending = next - blockInterval + pendingTxAt;
-                    long pendingDelta = Math.abs(nextPending + blockInterval - System.currentTimeMillis()) % blockInterval;
+                    //long pendingDelta = Math.abs(nextPending + blockInterval - System.currentTimeMillis()) % blockInterval;
+                    long pendingDelta = (nextPending - System.currentTimeMillis()) % blockInterval;
                     if (pendingDelta > 0) {
                         try {
                             Thread.sleep(pendingDelta);
