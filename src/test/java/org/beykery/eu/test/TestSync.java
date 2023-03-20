@@ -47,9 +47,8 @@ public class TestSync {
             }
 
             @Override
-            public void onPendingTransactions(List<LogEvent> logs, List<Transaction> txs, long from, long to, long current, long currentTime) {
+            public void onPendingTransactions(List<Transaction> txs, long current, long currentTime) {
                 System.out.println("pending txs : " + txs.size());
-                System.out.println("logs  : " + logs.size());
                 long elapsed = System.currentTimeMillis() - currentTime * 1000;
                 System.out.println("pending txs elapsed: " + elapsed);
                 System.out.println("---onPendingTransactions---");
@@ -92,7 +91,7 @@ public class TestSync {
                     return ret;
                 },
                 2000,
-                1300,
+                100,
                 3,
                 100,
                 Arrays.asList(SYNC_EVENT),

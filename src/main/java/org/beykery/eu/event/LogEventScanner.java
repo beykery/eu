@@ -66,9 +66,9 @@ public class LogEventScanner implements Runnable {
     private long blockInterval;
 
     /**
-     * pending transactions fetch at
+     * pending interval
      */
-    private long pendingTxAt;
+    private long pendingInterval;
 
     /**
      * pending tx parallel
@@ -124,18 +124,6 @@ public class LogEventScanner implements Runnable {
      * retry sleep (ms)
      */
     private long retryInterval;
-    /**
-     * 最高块处f
-     */
-    private long preF;
-    /**
-     * 最高块处t
-     */
-    private long preT;
-    /**
-     * 最高块处events
-     */
-    private List<LogEvent> preLogEvents;
 
     /**
      * init
@@ -178,20 +166,20 @@ public class LogEventScanner implements Runnable {
     /**
      * @param web3j
      * @param blockInterval
-     * @param pendingTxAt   pending transactions at
+     * @param pendingInterval
      * @param maxRetry
      * @param retryInterval
      * @param logFromTx
      * @param listener
      */
-    public LogEventScanner(Web3j web3j, long blockInterval, long pendingTxAt, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
+    public LogEventScanner(Web3j web3j, long blockInterval, long pendingInterval, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
         this.web3j = web3j;
         this.blockInterval = blockInterval;
         this.listener = listener;
         this.maxRetry = maxRetry;
         this.retryInterval = retryInterval;
         this.logFromTx = logFromTx;
-        this.pendingTxAt = pendingTxAt;
+        this.pendingInterval = pendingInterval;
     }
 
     /**
@@ -199,7 +187,7 @@ public class LogEventScanner implements Runnable {
      *
      * @param web3j
      * @param blockInterval
-     * @param pendingTxAt
+     * @param pendingInterval
      * @param pendingParallel
      * @param pendingBatchSize
      * @param maxRetry
@@ -207,14 +195,14 @@ public class LogEventScanner implements Runnable {
      * @param logFromTx
      * @param listener
      */
-    public LogEventScanner(Web3j web3j, long blockInterval, long pendingTxAt, int pendingParallel, int pendingBatchSize, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
+    public LogEventScanner(Web3j web3j, long blockInterval, long pendingInterval, int pendingParallel, int pendingBatchSize, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
         this.web3j = web3j;
         this.blockInterval = blockInterval;
         this.listener = listener;
         this.maxRetry = maxRetry;
         this.retryInterval = retryInterval;
         this.logFromTx = logFromTx;
-        this.pendingTxAt = pendingTxAt;
+        this.pendingInterval = pendingInterval;
         this.pendingParallel = pendingParallel;
         this.pendingBatchSize = pendingBatchSize;
     }
@@ -415,16 +403,12 @@ public class LogEventScanner implements Runnable {
                 if (logSize > 0 && listener.reverse()) {
                     Collections.reverse(les);
                 }
-                long preF = f;
-                f = t + 1;  // to the next loop
-                if (pendingTxAt > 0 && f > t) {  // 如果到达最高块则缓存当前的log, pending tx 被通知的时候，log作为上下文一起通知
-                    this.preF = preF;
-                    this.preT = t;
-                    this.preLogEvents = les;
-                }
+
                 // 通知
-                listener.onLogEvents(les, preF, t, current, currentTime);
-                listener.onOnceScanOver(preF, t, current, currentTime, logSize);
+                listener.onLogEvents(les, f, t, current, currentTime);
+                listener.onOnceScanOver(f, t, current, currentTime, logSize);
+
+                f = t + 1;
 
                 // step adjust
                 long targetSize = 1024 * 4;
@@ -437,50 +421,59 @@ public class LogEventScanner implements Runnable {
             else {
                 listener.onReachHighest(t);
                 step = 1;
-                long next = currentTime * 1000 + blockInterval;
-                if (pendingTxAt > 0 && preLogEvents != null) { // 只通知一次
-                    long nextPending = next - blockInterval + pendingTxAt;
-                    //long pendingDelta = Math.abs(nextPending + blockInterval - System.currentTimeMillis()) % blockInterval;
-                    long pendingDelta = (nextPending - System.currentTimeMillis()) % blockInterval;
-                    if (pendingDelta > 0) {
+            }
+            long next = currentTime * 1000 + blockInterval; // 下次出块时间
+            if (pendingInterval >= 0) {
+                do {
+                    // pending tx
+                    List<Transaction> pendingTxs = pendingTxs();
+                    if (pendingTxs != null && pendingTxs.size() > 0) {
+                        listener.onPendingTransactions(pendingTxs, current, currentTime);
+                    }
+                    if (pendingInterval > 0) {
                         try {
-                            Thread.sleep(pendingDelta);
-                        } catch (Exception x) {
+                            Thread.sleep(pendingInterval);
+                        } catch (Exception ex) {
+                        }
+                    } else {
+                        try {
+                            Thread.sleep(1);
+                        } catch (Exception ex) {
                         }
                     }
-                    List<Transaction> pendingTxs = pendingTxs();
-                    listener.onPendingTransactions(preLogEvents, pendingTxs, preF, preT, current, currentTime);
-                    preLogEvents = null;
-                }
-                long delta = next - System.currentTimeMillis();
-                if (delta > 0) {
-                    try {
-                        Thread.sleep(delta);
-                    } catch (Exception x) {
-                    }
-                }
-                long now = System.currentTimeMillis();
-                if (latest > 0 && now - latest < minInterval) {
-                    try {
-                        Thread.sleep(minInterval - now + latest);
-                    } catch (Exception x) {
-                    }
-                }
-                try {
-                    long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
-                    if (c[0] > current) {
-                        this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + 1000.0 * (c[1] - currentTime) / (c[0] - current) * sensitivity);
-                        current = c[0];
-                        currentTime = c[1];
-                    } else if (c[0] < current) {
-                        log.debug("block {} less than current block {}, ignore it .", c[0], current);
-                        Thread.sleep(minInterval);
-                    }
-                } catch (Exception ex) {
-                    log.error("fetch the current block number and timestamp failed");
-                }
-                latest = System.currentTimeMillis();
+                } while (System.currentTimeMillis() < next);
             }
+            // 等待下一个块到来
+            long delta = next - System.currentTimeMillis();
+            if (delta > 0) {
+                try {
+                    Thread.sleep(delta);
+                } catch (Exception x) {
+                }
+            }
+            // 等待最小间隔
+            long now = System.currentTimeMillis();
+            if (latest > 0 && now - latest < minInterval) {
+                try {
+                    Thread.sleep(minInterval - now + latest);
+                } catch (Exception x) {
+                }
+            }
+            // 求当前最高块
+            try {
+                long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
+                if (c[0] > current) {
+                    this.averageBlockInterval = (long) (this.averageBlockInterval * (1 - sensitivity) + 1000.0 * (c[1] - currentTime) / (c[0] - current) * sensitivity);
+                    current = c[0];
+                    currentTime = c[1];
+                } else if (c[0] < current) {
+                    log.debug("block {} less than current block {}, ignore it .", c[0], current);
+                    Thread.sleep(minInterval);
+                }
+            } catch (Exception ex) {
+                log.error("fetch the current block number and timestamp failed");
+            }
+            latest = System.currentTimeMillis();
         }
     }
 
