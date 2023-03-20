@@ -27,118 +27,23 @@ public abstract class BaseScanner implements LogEventListener {
     protected LogEventScanner scanner;
 
     /**
-     * start
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval        ms
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param sensitivity
-     * @param step
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, double sensitivity, long step, String... contracts) {
-        int maxRetry = 3;
-        long retryInterval = blockInterval / 20;
-        return start(web3j, currentBlockProvider, blockInterval, events, from, minInterval, sensitivity, step, maxRetry, retryInterval, contracts);
-    }
-
-    /**
-     * 启动
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval        ms
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param sensitivity
-     * @param step
-     * @param maxRetry
-     * @param retryInterval
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, double sensitivity, long step, int maxRetry, long retryInterval, String... contracts) {
-        return start(web3j, currentBlockProvider, blockInterval, events, from, minInterval, sensitivity, step, maxRetry, retryInterval, false, contracts);
-    }
-
-    /**
-     * 启动
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval        ms
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param sensitivity
-     * @param step
-     * @param maxRetry
-     * @param retryInterval
-     * @param logFromTx
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, List<Event> events, long from, long minInterval, double sensitivity, long step, int maxRetry, long retryInterval, boolean logFromTx, String... contracts) {
-        if (scanner == null) {
-            this.from = from;
-            this.contracts = contracts;
-            scanner = new LogEventScanner(web3j, blockInterval, maxRetry, retryInterval, logFromTx, this);
-            return scanner.start(this.from, events, contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, minInterval, sensitivity, step);
-        }
-        return false;
-    }
-
-    /**
      * start scan
      *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval
-     * @param pendingInterval
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param sensitivity
-     * @param step
-     * @param maxRetry
-     * @param retryInterval
-     * @param logFromTx
-     * @param contracts
-     * @return
-     */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, long pendingInterval, List<Event> events, long from, long minInterval, double sensitivity, long step, int maxRetry, long retryInterval, boolean logFromTx, String... contracts) {
-        if (scanner == null) {
-            this.from = from;
-            this.contracts = contracts;
-            scanner = new LogEventScanner(web3j, blockInterval, pendingInterval, maxRetry, retryInterval, logFromTx, this);
-            return scanner.start(this.from, events, contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, minInterval, sensitivity, step);
-        }
-        return false;
-    }
-
-    /**
-     * start scan
-     *
-     * @param web3j
-     * @param currentBlockProvider
-     * @param blockInterval
-     * @param pendingInterval
-     * @param pendingParallel
-     * @param pendingBatchSize
-     * @param events
-     * @param from
-     * @param minInterval
-     * @param sensitivity
-     * @param step
-     * @param maxRetry
-     * @param retryInterval
-     * @param logFromTx
-     * @param contracts
+     * @param web3j                web3j
+     * @param currentBlockProvider current block provider
+     * @param blockInterval        block interval
+     * @param pendingInterval      pending tx interval
+     * @param pendingParallel      pending parallel
+     * @param pendingBatchSize     pending batch size
+     * @param events               events for logs
+     * @param from                 from block
+     * @param minInterval          min interval for log fetch
+     * @param sensitivity          sensitivity for interval
+     * @param step                 step
+     * @param maxRetry             max retry
+     * @param retryInterval        retry interval
+     * @param logFromTx            log event from transaction
+     * @param contracts            contracts for event log
      * @return
      */
     public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, long pendingInterval, int pendingParallel, int pendingBatchSize, List<Event> events, long from, long minInterval, double sensitivity, long step, int maxRetry, long retryInterval, boolean logFromTx, String... contracts) {
