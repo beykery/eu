@@ -424,24 +424,28 @@ public class LogEventScanner implements Runnable {
             }
             long next = currentTime * 1000 + blockInterval; // 下次出块时间
             if (pendingInterval >= 0) {
-                do {
+                while (true) {
                     // pending tx
                     List<Transaction> pendingTxs = pendingTxs();
                     if (pendingTxs != null && pendingTxs.size() > 0) {
                         listener.onPendingTransactions(pendingTxs, current, currentTime);
                     }
-                    if (pendingInterval > 0) {
-                        try {
-                            Thread.sleep(pendingInterval);
-                        } catch (Exception ex) {
-                        }
-                    } else {
-                        try {
-                            Thread.sleep(1);
-                        } catch (Exception ex) {
+                    long now = System.currentTimeMillis();
+                    if (now < next) {
+                        long maxSleep = next - now;
+                        if (pendingInterval > 0) {
+                            try {
+                                Thread.sleep(Math.min(pendingInterval, maxSleep));
+                            } catch (Exception ex) {
+                            }
+                        } else {
+                            try {
+                                Thread.sleep(1);
+                            } catch (Exception ex) {
+                            }
                         }
                     }
-                } while (System.currentTimeMillis() < next);
+                }
             }
             // 等待下一个块到来
             long delta = next - System.currentTimeMillis();
