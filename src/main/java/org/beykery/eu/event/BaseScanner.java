@@ -33,11 +33,11 @@ public abstract class BaseScanner implements LogEventListener {
      * @param currentBlockProvider current block provider
      * @param blockInterval        block interval
      * @param pendingInterval      pending tx interval
+     * @param pendingMaxDelay      pending max delay
      * @param pendingParallel      pending parallel
      * @param pendingBatchSize     pending batch size
      * @param events               events for logs
      * @param from                 from block
-     * @param minInterval          min interval for log fetch
      * @param sensitivity          sensitivity for interval
      * @param step                 step
      * @param maxRetry             max retry
@@ -46,12 +46,28 @@ public abstract class BaseScanner implements LogEventListener {
      * @param contracts            contracts for event log
      * @return
      */
-    public boolean start(Web3j web3j, CurrentBlockProvider currentBlockProvider, long blockInterval, long pendingInterval, int pendingParallel, int pendingBatchSize, List<Event> events, long from, long minInterval, double sensitivity, long step, int maxRetry, long retryInterval, boolean logFromTx, String... contracts) {
+    public boolean start(
+            Web3j web3j,
+            CurrentBlockProvider currentBlockProvider,
+            long blockInterval,
+            long pendingInterval,
+            long pendingMaxDelay,
+            int pendingParallel,
+            int pendingBatchSize,
+            List<Event> events,
+            long from,
+            double sensitivity,
+            long step,
+            int maxRetry,
+            long retryInterval,
+            boolean logFromTx,
+            String... contracts
+    ) {
         if (scanner == null) {
             this.from = from;
             this.contracts = contracts;
-            scanner = new LogEventScanner(web3j, blockInterval, pendingInterval, pendingParallel, pendingBatchSize, maxRetry, retryInterval, logFromTx, this);
-            return scanner.start(this.from, events, contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, minInterval, sensitivity, step);
+            scanner = new LogEventScanner(web3j, blockInterval, pendingInterval, pendingMaxDelay, pendingParallel, pendingBatchSize, maxRetry, retryInterval, logFromTx, this);
+            return scanner.start(this.from, events, contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, sensitivity, step);
         }
         return false;
     }

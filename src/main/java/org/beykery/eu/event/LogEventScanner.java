@@ -71,6 +71,11 @@ public class LogEventScanner implements Runnable {
     private long pendingInterval;
 
     /**
+     * pending max delay
+     */
+    private long pendingMaxDelay;
+
+    /**
      * pending tx parallel
      */
     private int pendingParallel;
@@ -79,11 +84,6 @@ public class LogEventScanner implements Runnable {
      * pending tx batch size
      */
     private int pendingBatchSize;
-
-    /**
-     * 最新块的最小获取间隔(ms)
-     */
-    private long minInterval;
 
     /**
      * 当前高
@@ -126,63 +126,6 @@ public class LogEventScanner implements Runnable {
     private long retryInterval;
 
     /**
-     * init
-     *
-     * @param web3j
-     */
-    public LogEventScanner(Web3j web3j, long blockInterval, LogEventListener listener) {
-        this.web3j = web3j;
-        this.blockInterval = blockInterval;
-        this.listener = listener;
-    }
-
-    public LogEventScanner(Web3j web3j, long blockInterval, int maxRetry, long retryInterval, LogEventListener listener) {
-        this.web3j = web3j;
-        this.blockInterval = blockInterval;
-        this.listener = listener;
-        this.maxRetry = maxRetry;
-        this.retryInterval = retryInterval;
-    }
-
-    /**
-     * scanner
-     *
-     * @param web3j
-     * @param blockInterval
-     * @param maxRetry
-     * @param retryInterval
-     * @param logFromTx
-     * @param listener
-     */
-    public LogEventScanner(Web3j web3j, long blockInterval, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
-        this.web3j = web3j;
-        this.blockInterval = blockInterval;
-        this.listener = listener;
-        this.maxRetry = maxRetry;
-        this.retryInterval = retryInterval;
-        this.logFromTx = logFromTx;
-    }
-
-    /**
-     * @param web3j
-     * @param blockInterval
-     * @param pendingInterval
-     * @param maxRetry
-     * @param retryInterval
-     * @param logFromTx
-     * @param listener
-     */
-    public LogEventScanner(Web3j web3j, long blockInterval, long pendingInterval, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
-        this.web3j = web3j;
-        this.blockInterval = blockInterval;
-        this.listener = listener;
-        this.maxRetry = maxRetry;
-        this.retryInterval = retryInterval;
-        this.logFromTx = logFromTx;
-        this.pendingInterval = pendingInterval;
-    }
-
-    /**
      * log event scanner
      *
      * @param web3j
@@ -195,7 +138,18 @@ public class LogEventScanner implements Runnable {
      * @param logFromTx
      * @param listener
      */
-    public LogEventScanner(Web3j web3j, long blockInterval, long pendingInterval, int pendingParallel, int pendingBatchSize, int maxRetry, long retryInterval, boolean logFromTx, LogEventListener listener) {
+    public LogEventScanner(
+            Web3j web3j,
+            long blockInterval,
+            long pendingInterval,
+            long pendingMaxDelay,
+            int pendingParallel,
+            int pendingBatchSize,
+            int maxRetry,
+            long retryInterval,
+            boolean logFromTx,
+            LogEventListener listener
+    ) {
         this.web3j = web3j;
         this.blockInterval = blockInterval;
         this.listener = listener;
@@ -203,87 +157,30 @@ public class LogEventScanner implements Runnable {
         this.retryInterval = retryInterval;
         this.logFromTx = logFromTx;
         this.pendingInterval = pendingInterval;
+        this.pendingMaxDelay = pendingMaxDelay;
         this.pendingParallel = pendingParallel;
         this.pendingBatchSize = pendingBatchSize;
     }
 
     /**
-     * 开始爬取
-     */
-    public boolean start(long from, List<Event> events, List<String> contracts) {
-        return start(from, events, contracts, null);
-    }
-
-    /**
-     * 爬取
-     *
-     * @param from
-     * @param events
-     * @param contracts
-     * @param currentBlockProvider
-     * @return
-     */
-    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider) {
-        return start(from, events, contracts, currentBlockProvider, 0);
-    }
-
-    /**
-     * 开始爬取
-     *
-     * @param from
-     * @param events
-     * @param contracts
-     * @param currentBlockProvider
-     * @param minInterval
-     * @return
-     */
-    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval) {
-        return start(from, events, contracts, currentBlockProvider, minInterval, 0);
-    }
-
-    /**
-     * 开始爬取
-     *
-     * @param from
-     * @param events
-     * @param contracts
-     * @param currentBlockProvider
-     * @param minInterval
-     * @param sensitivity
-     * @return
-     */
-    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval, double sensitivity) {
-        return start(from, events, contracts, currentBlockProvider, minInterval, sensitivity, step);
-    }
-
-    /**
      * start
      *
      * @param from
      * @param events
      * @param contracts
      * @param currentBlockProvider
-     * @param minInterval
-     * @param step
-     * @return
-     */
-    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval, long step) {
-        return start(from, events, contracts, currentBlockProvider, minInterval, 0, step);
-    }
-
-    /**
-     * start
-     *
-     * @param from
-     * @param events
-     * @param contracts
-     * @param currentBlockProvider
-     * @param minInterval
      * @param sensitivity
      * @param step
      * @return
      */
-    public boolean start(long from, List<Event> events, List<String> contracts, CurrentBlockProvider currentBlockProvider, long minInterval, double sensitivity, long step) {
+    public boolean start(
+            long from,
+            List<Event> events,
+            List<String> contracts,
+            CurrentBlockProvider currentBlockProvider,
+            double sensitivity,
+            long step
+    ) {
         if (currentBlockProvider == null) {
             currentBlockProvider = () -> {
                 EthBlock block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.fromString("latest"), false).send();
@@ -301,7 +198,6 @@ public class LogEventScanner implements Runnable {
             this.from = from;
             this.step = step;
             this.contracts = contracts;
-            this.minInterval = minInterval;
             Thread thread = new Thread(this);
             thread.start();
         }
@@ -356,8 +252,6 @@ public class LogEventScanner implements Runnable {
             scanning = false;
             throw new RuntimeException(ex);
         }
-        final long minInterval = this.minInterval == 0 ? blockInterval / 10 : this.minInterval; // 最小间隔
-        long latest = 0;
         from = from < 0 ? current : from; // from
         long step = 1;    // 步长
         long f = from;    // 起始位置
@@ -424,7 +318,7 @@ public class LogEventScanner implements Runnable {
             }
             long next = currentTime * 1000 + blockInterval; // 下次出块时间
             if (pendingInterval >= 0) {
-                while (true) {
+                while (pendingMaxDelay <= 0 || (System.currentTimeMillis() - next + blockInterval < pendingMaxDelay)) {
                     // pending tx
                     List<Transaction> pendingTxs = pendingTxs();
                     if (pendingTxs != null && pendingTxs.size() > 0) {
@@ -455,14 +349,6 @@ public class LogEventScanner implements Runnable {
                 } catch (Exception x) {
                 }
             }
-            // 等待最小间隔
-            long now = System.currentTimeMillis();
-            if (latest > 0 && now - latest < minInterval) {
-                try {
-                    Thread.sleep(minInterval - now + latest);
-                } catch (Exception x) {
-                }
-            }
             // 求当前最高块
             try {
                 long[] c = this.currentBlockProvider.currentBlockNumberAndTimestamp();
@@ -472,12 +358,11 @@ public class LogEventScanner implements Runnable {
                     currentTime = c[1];
                 } else if (c[0] < current) {
                     log.debug("block {} less than current block {}, ignore it .", c[0], current);
-                    Thread.sleep(minInterval);
+                    Thread.sleep(1);
                 }
             } catch (Exception ex) {
                 log.error("fetch the current block number and timestamp failed");
             }
-            latest = System.currentTimeMillis();
         }
     }
 
