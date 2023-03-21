@@ -67,7 +67,7 @@ public abstract class BaseScanner implements LogEventListener {
             this.from = from;
             this.contracts = contracts;
             scanner = new LogEventScanner(web3j, blockInterval, pendingInterval, pendingMaxDelay, pendingParallel, pendingBatchSize, maxRetry, retryInterval, logFromTx, this);
-            return scanner.start(this.from, events, contracts == null || contracts.length <= 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, sensitivity, step);
+            return scanner.start(this.from, events, contracts == null || contracts.length == 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, sensitivity, step);
         }
         return false;
     }
