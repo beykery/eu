@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.ConnectException;
+import java.security.SignatureException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -1423,5 +1424,37 @@ public class EthContractUtil {
             }
         }
         return Collections.EMPTY_LIST;
+    }
+
+    /**
+     * get address for signed message
+     *
+     * @param signedMessageInHex
+     * @param originalMessage
+     * @return
+     * @throws SignatureException
+     */
+    public static String getAddressUsedToSignHashedMessage(
+            String signedMessageInHex,
+            String originalMessage
+    ) throws SignatureException {
+        if (signedMessageInHex.startsWith("0x")) {
+            signedMessageInHex = signedMessageInHex.substring(2);
+        }
+
+        // No need to prepend these strings with 0x because
+        // Numeric.hexStringToByteArray() accepts both formats
+        String r = signedMessageInHex.substring(0, 64);
+        String s = signedMessageInHex.substring(64, 128);
+        String v = signedMessageInHex.substring(128, 130);
+
+        // Using Sign.signedPrefixedMessageToKey for EIP-712 compliant signatures.
+        String pubkey = Sign.signedPrefixedMessageToKey(originalMessage.getBytes(),
+                        new Sign.SignatureData(
+                                Numeric.hexStringToByteArray(v)[0],
+                                Numeric.hexStringToByteArray(r),
+                                Numeric.hexStringToByteArray(s)))
+                .toString(16);
+        return Keys.getAddress(pubkey);
     }
 }
