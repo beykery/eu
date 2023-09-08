@@ -1427,6 +1427,27 @@ public class EthContractUtil {
     }
 
     /**
+     * sign prefixed message
+     *
+     * @param msg
+     * @param pri
+     * @return
+     */
+    public static String signPrefixedMessage(String msg, String pri) {
+        // Using Sign.signPrefixedMessage is EIP-712 compliant. It:
+        // 1) adds a \x19Ethereum Signed Message\n prefix,
+        // 2) adds the byte-length of the message, and
+        // 3) Does NOT hash the message.
+        ECKeyPair aPair = ECKeyPair.create(Numeric.hexStringToByteArray(pri));
+        Sign.SignatureData signatureData = Sign.signPrefixedMessage(msg.getBytes(), aPair);
+        byte[] signedMessageBytes = new byte[32 + 32 + 1]; // 32 bytes for r, 32 bytes for s, 1 byte for v
+        System.arraycopy(signatureData.getR(), 0, signedMessageBytes, 0, 32);
+        System.arraycopy(signatureData.getS(), 0, signedMessageBytes, 32, 32);
+        System.arraycopy(signatureData.getV(), 0, signedMessageBytes, 64, 1);
+        return Numeric.toHexString(signedMessageBytes);
+    }
+
+    /**
      * get address for signed message
      *
      * @param signedMessageInHex
@@ -1455,6 +1476,6 @@ public class EthContractUtil {
                                 Numeric.hexStringToByteArray(r),
                                 Numeric.hexStringToByteArray(s)))
                 .toString(16);
-        return Keys.getAddress(pubkey);
+        return "0x" + Keys.getAddress(pubkey);
     }
 }
