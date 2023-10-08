@@ -14,13 +14,13 @@ import org.web3j.protocol.Web3jService;
 import org.web3j.protocol.core.*;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.*;
+import org.web3j.protocol.geth.JsonRpc2_0Geth;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.protocol.websocket.WebSocketService;
 import org.web3j.rlp.RlpEncoder;
 import org.web3j.rlp.RlpList;
 import org.web3j.rlp.RlpString;
 import org.web3j.tx.Contract;
-import org.web3j.utils.Async;
 import org.web3j.utils.Numeric;
 
 import java.io.IOException;
@@ -481,9 +481,9 @@ public class EthContractUtil {
      *
      * @return
      */
-    public static Web3j getWeb3j() {
+    public static JsonRpc2_0Geth getWeb3j() {
         String nodeUrl = "https://mainnet.infura.io/v3/ac6e4a09bef34cf494d1941d1bc561b6";
-        Web3j web3j = Web3j.build(new HttpService(nodeUrl));
+        JsonRpc2_0Geth web3j = EuWeb3j.build(new HttpService(nodeUrl));
         return web3j;
     }
 
@@ -493,9 +493,9 @@ public class EthContractUtil {
      * @param nodes
      * @return
      */
-    public static Web3j getWeb3j(List<String> nodes) {
+    public static JsonRpc2_0Geth getWeb3j(List<String> nodes) {
         Web3jService ws = new EuHttpService(nodes);
-        Web3j web3j = Web3j.build(ws, 3, Async.defaultExecutorService());
+        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 
@@ -505,51 +505,26 @@ public class EthContractUtil {
      * @param node
      * @return
      */
-    public static Web3j getWeb3j(String node) throws ConnectException {
-        return getWeb3j(node, 3);
-    }
-
-    /**
-     * 指定interval
-     *
-     * @param node
-     * @param pollingInterval
-     * @return
-     */
-    public static Web3j getWeb3j(String node, long pollingInterval) throws ConnectException {
+    public static JsonRpc2_0Geth getWeb3j(String node) throws ConnectException {
         Web3jService ws;
         if (node.startsWith("ws")) {
-            ws = new WebSocketService(node, false);
+            ws = new WebSocketService(node, true);
             ((WebSocketService) ws).connect();
         } else {
             ws = new EuHttpService(node);
         }
-        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
+        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 
-    /**
-     * nodes with polling interval
-     *
-     * @param nodes
-     * @param pollingInterval
-     * @return
-     * @throws ConnectException
-     */
-    public static Web3j getWeb3j(List<String> nodes, long pollingInterval) {
-        Web3jService ws = new EuHttpService(nodes);
-        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
-        return web3j;
-    }
 
     /**
      * web3j
      *
      * @param okClient
-     * @param pollingInterval
      * @return
      */
-    public static Web3j getWeb3j(String node, OkHttpClient okClient, long pollingInterval) throws ConnectException {
+    public static JsonRpc2_0Geth getWeb3j(String node, OkHttpClient okClient) throws ConnectException {
         Web3jService ws;
         if (node.startsWith("ws")) {
             ws = new WebSocketService(node, false);
@@ -557,7 +532,7 @@ public class EthContractUtil {
         } else {
             ws = new EuHttpService(node, okClient);
         }
-        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
+        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 
@@ -566,13 +541,12 @@ public class EthContractUtil {
      *
      * @param nodes
      * @param okClient
-     * @param pollingInterval
      * @return
      * @throws ConnectException
      */
-    public static Web3j getWeb3j(List<String> nodes, OkHttpClient okClient, long pollingInterval) {
+    public static JsonRpc2_0Geth getWeb3j(List<String> nodes, OkHttpClient okClient) {
         Web3jService ws = new EuHttpService(nodes, okClient, false);
-        Web3j web3j = Web3j.build(ws, pollingInterval, Async.defaultExecutorService());
+        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 

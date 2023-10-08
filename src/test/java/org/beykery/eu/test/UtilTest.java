@@ -1,12 +1,16 @@
 package org.beykery.eu.test;
 
+import org.beykery.eu.util.EthContractUtil;
 import org.junit.jupiter.api.Test;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.DynamicArray;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.generated.Uint256;
+import org.web3j.protocol.Web3j;
 
+import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,5 +31,13 @@ public class UtilTest {
         );
         List<Type> ret = decodeInputData(input, temp);
         System.out.println(ret);
+    }
+
+    @Test
+    void testHarmony() throws IOException {
+        String url = "http://135.181.2.20:9500";
+        Web3j web3j = EthContractUtil.getWeb3j(url);
+        long cid = EthContractUtil.chainId(web3j);
+        System.out.println(cid);
     }
 }
