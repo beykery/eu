@@ -1,18 +1,23 @@
 package org.beykery.eu.event;
 
+import io.reactivex.Flowable;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.beykery.eu.util.EthContractUtil;
 import org.web3j.abi.datatypes.Event;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.methods.response.EthChainId;
 import org.web3j.protocol.core.methods.response.Transaction;
+import org.web3j.protocol.geth.Geth;
+import org.web3j.protocol.websocket.events.PendingTransactionNotification;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * scan log event
@@ -28,17 +33,26 @@ public class LogEventScanner implements Runnable {
     /**
      * 监听
      */
-    private LogEventListener listener;
+    private final LogEventListener listener;
 
     /**
      * web3j
      */
-    private Web3j web3j;
+    private final Geth web3j;
 
     /**
      * scan start
      */
     private volatile boolean scanning;
+
+    /**
+     * pending
+     */
+    private volatile boolean pending;
+    /**
+     * queue for hash
+     */
+    private final LinkedBlockingDeque<String> pendingQueue;
 
     /**
      * 事件
@@ -58,41 +72,51 @@ public class LogEventScanner implements Runnable {
     /**
      * 是否从tx中分析log
      */
-    private boolean logFromTx;
+    private final boolean logFromTx;
 
     /**
      * 出块间隔(ms)
      */
-    private long blockInterval;
+    private final long blockInterval;
 
     /**
      * pending interval
      */
-    private long pendingInterval;
+    private final long pendingInterval;
 
     /**
      * pending max delay
      */
-    private long pendingMaxDelay;
+    private final long pendingMaxDelay;
 
     /**
      * pending tx parallel
      */
-    private int pendingParallel;
+    private final int pendingParallel;
 
     /**
      * pending tx batch size
      */
-    private int pendingBatchSize;
+    private final int pendingBatchSize;
 
     /**
      * 当前高
+     * -- GETTER --
+     * 当前块高
+     *
+     * @return
      */
+    @Getter
     private long current;
 
     /**
      * 当前高度的时间(second)
+     * -- GETTER --
+     * 当前块高时间(second)
+     *
+     * @return
      */
+    @Getter
     private long currentTime;
 
     /**
@@ -102,7 +126,12 @@ public class LogEventScanner implements Runnable {
 
     /**
      * 统计平均出块间隔，计算滑动平均值(ms)
+     * -- GETTER --
+     * 平均出块间隔(ms)
+     *
+     * @return
      */
+    @Getter
     private long averageBlockInterval;
 
     /**
@@ -118,12 +147,12 @@ public class LogEventScanner implements Runnable {
     /**
      * 最多重试次数
      */
-    private int maxRetry;
+    private final int maxRetry;
 
     /**
      * retry sleep (ms)
      */
-    private long retryInterval;
+    private final long retryInterval;
 
     /**
      * log event scanner
@@ -139,7 +168,7 @@ public class LogEventScanner implements Runnable {
      * @param listener
      */
     public LogEventScanner(
-            Web3j web3j,
+            Geth web3j,
             long blockInterval,
             long pendingInterval,
             long pendingMaxDelay,
@@ -160,6 +189,7 @@ public class LogEventScanner implements Runnable {
         this.pendingMaxDelay = pendingMaxDelay;
         this.pendingParallel = pendingParallel;
         this.pendingBatchSize = pendingBatchSize;
+        this.pendingQueue = new LinkedBlockingDeque<>();
     }
 
     /**
@@ -198,6 +228,10 @@ public class LogEventScanner implements Runnable {
             this.from = from;
             this.step = step;
             this.contracts = contracts;
+            // 尝试启动pending
+            if (pendingInterval > 0) {
+                startPending();
+            }
             Thread thread = new Thread(this);
             thread.start();
         }
@@ -205,10 +239,37 @@ public class LogEventScanner implements Runnable {
     }
 
     /**
+     * 尝试启动pending
+     */
+    public void startPending() {
+        if (!pending) {
+            pending = true;
+            Runnable run = () -> {
+                try {
+                    Flowable<PendingTransactionNotification> f = web3j.newPendingTransactionsNotifications();
+                    f.blockingForEach(item -> pendingQueue.offer(item.getParams().getResult()));
+                } catch (Exception ex) {
+                    pending = false;
+                }
+            };
+            Thread thread = new Thread(run);
+            thread.start();
+        }
+    }
+
+    /**
+     * 停止pending
+     */
+    public void stopPending() {
+        this.pending = false;
+    }
+
+    /**
      * stop scan
      */
     public void stop() {
         this.scanning = false;
+        this.pending = false;
     }
 
     /**
@@ -321,7 +382,7 @@ public class LogEventScanner implements Runnable {
                 while (pendingMaxDelay <= 0 || (System.currentTimeMillis() - next + blockInterval < pendingMaxDelay)) {
                     // pending tx
                     List<Transaction> pendingTxs = pendingTxs();
-                    if (pendingTxs != null && pendingTxs.size() > 0) {
+                    if (pendingTxs != null && !pendingTxs.isEmpty()) {
                         listener.onPendingTransactions(pendingTxs, current, currentTime);
                     }
                     long now = System.currentTimeMillis();
@@ -374,43 +435,31 @@ public class LogEventScanner implements Runnable {
      * @return
      */
     private List<Transaction> pendingTxs() {
-        try {
-            if (fid == null) {
-                fid = EthContractUtil.newPendingTransactionFilterId(web3j);
+        if (pending) {
+            int batchSize = pendingBatchSize <= 0 ? 50 : pendingBatchSize;
+            List<String> hash = new ArrayList<>();
+            while (!pendingQueue.isEmpty() && hash.size() < batchSize * 2) {
+                hash.add(pendingQueue.remove());
             }
-            List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize <= 0 ? 50 : pendingBatchSize);
-            return txs;
-        } catch (Exception ex) {
-            log.error("fetch pending transactions error", ex);
-            fid = null;
-            return Collections.EMPTY_LIST;
+            if (!hash.isEmpty()) {
+                List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, hash, pendingParallel <= 0 ? 3 : pendingParallel, batchSize);
+                return txs;
+            } else {
+                return Collections.EMPTY_LIST;
+            }
+        } else {
+            try {
+                if (fid == null) {
+                    fid = EthContractUtil.newPendingTransactionFilterId(web3j);
+                }
+                List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize <= 0 ? 50 : pendingBatchSize);
+                return txs;
+            } catch (Exception ex) {
+                log.error("fetch pending transactions error", ex);
+                fid = null;
+                return Collections.EMPTY_LIST;
+            }
         }
     }
 
-    /**
-     * 当前块高
-     *
-     * @return
-     */
-    public long getCurrent() {
-        return current;
-    }
-
-    /**
-     * 当前块高时间(second)
-     *
-     * @return
-     */
-    public long getCurrentTime() {
-        return currentTime;
-    }
-
-    /**
-     * 平均出块间隔(ms)
-     *
-     * @return
-     */
-    public long getAverageBlockInterval() {
-        return averageBlockInterval;
-    }
 }

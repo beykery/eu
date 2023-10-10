@@ -2,7 +2,7 @@ package org.beykery.eu.event;
 
 import lombok.extern.slf4j.Slf4j;
 import org.web3j.abi.datatypes.Event;
-import org.web3j.protocol.Web3j;
+import org.web3j.protocol.geth.Geth;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,7 +47,7 @@ public abstract class BaseScanner implements LogEventListener {
      * @return
      */
     public boolean start(
-            Web3j web3j,
+            Geth web3j,
             CurrentBlockProvider currentBlockProvider,
             long blockInterval,
             long pendingInterval,

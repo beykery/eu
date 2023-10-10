@@ -14,7 +14,7 @@ import org.web3j.protocol.Web3jService;
 import org.web3j.protocol.core.*;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.*;
-import org.web3j.protocol.geth.JsonRpc2_0Geth;
+import org.web3j.protocol.geth.Geth;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.protocol.websocket.WebSocketService;
 import org.web3j.rlp.RlpEncoder;
@@ -481,9 +481,9 @@ public class EthContractUtil {
      *
      * @return
      */
-    public static JsonRpc2_0Geth getWeb3j() {
+    public static Geth getWeb3j() {
         String nodeUrl = "https://mainnet.infura.io/v3/ac6e4a09bef34cf494d1941d1bc561b6";
-        JsonRpc2_0Geth web3j = EuWeb3j.build(new HttpService(nodeUrl));
+        Geth web3j = EuWeb3j.build(new HttpService(nodeUrl));
         return web3j;
     }
 
@@ -493,9 +493,9 @@ public class EthContractUtil {
      * @param nodes
      * @return
      */
-    public static JsonRpc2_0Geth getWeb3j(List<String> nodes) {
+    public static Geth getWeb3j(List<String> nodes) {
         Web3jService ws = new EuHttpService(nodes);
-        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 
@@ -505,7 +505,7 @@ public class EthContractUtil {
      * @param node
      * @return
      */
-    public static JsonRpc2_0Geth getWeb3j(String node) throws ConnectException {
+    public static Geth getWeb3j(String node) throws ConnectException {
         Web3jService ws;
         if (node.startsWith("ws")) {
             ws = new WebSocketService(node, true);
@@ -513,7 +513,7 @@ public class EthContractUtil {
         } else {
             ws = new EuHttpService(node);
         }
-        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 
@@ -524,7 +524,7 @@ public class EthContractUtil {
      * @param okClient
      * @return
      */
-    public static JsonRpc2_0Geth getWeb3j(String node, OkHttpClient okClient) throws ConnectException {
+    public static Geth getWeb3j(String node, OkHttpClient okClient) throws ConnectException {
         Web3jService ws;
         if (node.startsWith("ws")) {
             ws = new WebSocketService(node, false);
@@ -532,7 +532,7 @@ public class EthContractUtil {
         } else {
             ws = new EuHttpService(node, okClient);
         }
-        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 
@@ -544,9 +544,9 @@ public class EthContractUtil {
      * @return
      * @throws ConnectException
      */
-    public static JsonRpc2_0Geth getWeb3j(List<String> nodes, OkHttpClient okClient) {
+    public static Geth getWeb3j(List<String> nodes, OkHttpClient okClient) {
         Web3jService ws = new EuHttpService(nodes, okClient, false);
-        JsonRpc2_0Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuWeb3j.build(ws);
         return web3j;
     }
 
@@ -1131,62 +1131,74 @@ public class EthContractUtil {
     public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel, int batchSize) throws Exception {
         EthLog logs = web3j.ethGetFilterChanges(filterId).send();
         List<EthLog.LogResult> ls = logs.getLogs();
-        if (ls != null && ls.size() > 0) {
-            if (parallel > 1) {
-                if (POOL == null || POOL.getParallelism() != parallel) {
-                    POOL = new ForkJoinPool(parallel);
-                }
-            }
-            batchSize = batchSize <= 0 ? 50 : batchSize;
-            int group = ls.size() % batchSize == 0 ? (ls.size() / batchSize) : (ls.size() / batchSize + 1);
-            if (group == 0) {
-                group++;
-            }
-            final int finalBatchSize = batchSize;
-            IntStream stream = (parallel > 1 && group > 1) ? ParallelIntStreamSupport.range(0, group, POOL) : IntStream.range(0, group);
-            List<List<EthTransaction>> list = stream.mapToObj(g -> {
-                int start = g * finalBatchSize;
-                int end = start + finalBatchSize;
-                if (end > ls.size()) {
-                    end = ls.size();
-                }
-                BatchRequest request = batchRequest(web3j);
-                for (int i = start; i < end; i++) {
-                    String hash = ls.get(i).get().toString();
-                    request.add(web3j.ethGetTransactionByHash(hash));
-                }
-                try {
-                    BatchResponse response = request.send();
-                    List<EthTransaction> responses = (List<EthTransaction>) response.getResponses();
-                    return responses;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }).filter(Objects::nonNull).collect(Collectors.toList());
-            List<org.web3j.protocol.core.methods.response.Transaction> ret = new ArrayList<>();
-            list.forEach(item -> item.forEach(r -> {
-                org.web3j.protocol.core.methods.response.Transaction t = r.getResult();
-                if (t != null) {
-                    ret.add(r.getResult());
-                }
-            }));
-            if (ret.size() != ls.size()) {
-                log.warn("{} fetched with {} total pxs", ret.size(), ls.size());
-            }
-            ret.sort((t1, t2) -> {
-                BigInteger price1 = t1.getGasPrice();
-                if (price1 == null) {
-                    price1 = t1.getMaxFeePerGas();
-                }
-                BigInteger price2 = t2.getGasPrice();
-                if (price2 == null) {
-                    price2 = t2.getMaxFeePerGas();
-                }
-                return price2.compareTo(price1);
-            });
-            return ret;
+        if (ls != null && !ls.isEmpty()) {
+            return pendingTransactions(web3j, ls.stream().map(item -> item.get().toString()).collect(Collectors.toList()), parallel, batchSize);
+        } else {
+            return Collections.EMPTY_LIST;
         }
-        return Collections.EMPTY_LIST;
+    }
+
+    /**
+     * 求pending
+     *
+     * @param web3j
+     * @param ls    hash list
+     * @return
+     */
+    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, List<String> ls, int parallel, int batchSize) {
+        if (parallel > 1) {
+            if (POOL == null || POOL.getParallelism() != parallel) {
+                POOL = new ForkJoinPool(parallel);
+            }
+        }
+        batchSize = batchSize <= 0 ? 50 : batchSize;
+        int group = ls.size() % batchSize == 0 ? (ls.size() / batchSize) : (ls.size() / batchSize + 1);
+        if (group == 0) {
+            group++;
+        }
+        final int finalBatchSize = batchSize;
+        IntStream stream = (parallel > 1 && group > 1) ? ParallelIntStreamSupport.range(0, group, POOL) : IntStream.range(0, group);
+        List<List<EthTransaction>> list = stream.mapToObj(g -> {
+            int start = g * finalBatchSize;
+            int end = start + finalBatchSize;
+            if (end > ls.size()) {
+                end = ls.size();
+            }
+            BatchRequest request = batchRequest(web3j);
+            for (int i = start; i < end; i++) {
+                String hash = ls.get(i);
+                request.add(web3j.ethGetTransactionByHash(hash));
+            }
+            try {
+                BatchResponse response = request.send();
+                List<EthTransaction> responses = (List<EthTransaction>) response.getResponses();
+                return responses;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).filter(Objects::nonNull).toList();
+        List<org.web3j.protocol.core.methods.response.Transaction> ret = new ArrayList<>();
+        list.forEach(item -> item.forEach(r -> {
+            org.web3j.protocol.core.methods.response.Transaction t = r.getResult();
+            if (t != null) {
+                ret.add(r.getResult());
+            }
+        }));
+        if (ret.size() != ls.size()) {
+            log.warn("{} fetched with {} total pxs", ret.size(), ls.size());
+        }
+        ret.sort((t1, t2) -> {
+            BigInteger price1 = t1.getGasPrice();
+            if (price1 == null) {
+                price1 = t1.getMaxFeePerGas();
+            }
+            BigInteger price2 = t2.getGasPrice();
+            if (price2 == null) {
+                price2 = t2.getMaxFeePerGas();
+            }
+            return price2.compareTo(price1);
+        });
+        return ret;
     }
 
     /**

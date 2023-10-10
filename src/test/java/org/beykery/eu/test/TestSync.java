@@ -9,6 +9,7 @@ import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.generated.Uint112;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.Transaction;
+import org.web3j.protocol.geth.Geth;
 import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.ReadonlyTransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
@@ -80,7 +81,7 @@ public class TestSync {
                 "https://api.harmony.one",
                 "https://harmony-0-rpc.gateway.pokt.network",
         };
-        Web3j web3j = EthContractUtil.getWeb3j(Arrays.asList(nodes));
+        Geth web3j = EthContractUtil.getWeb3j(Arrays.asList(nodes));
         TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
 
         scanner.start(
