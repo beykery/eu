@@ -17,7 +17,7 @@
         <junit-jupiter.version>5.9.2</junit-jupiter.version>
         <web3j.version>4.10.3</web3j.version>
         <okhttp.version>4.11.0</okhttp.version>
-        <jackson.version>2.13.4</jackson.version>
+        <jackson.version>2.15.1</jackson.version>
         <slf4j.version>1.7.36</slf4j.version>
     </properties>
     <url>
@@ -214,7 +214,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.24</version>
+            <version>1.18.26</version>
         </dependency>
 
         <dependency>
