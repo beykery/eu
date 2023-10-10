@@ -21,7 +21,8 @@ public class PendingTest {
         //String url = "https://eth-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf";
         //String url = "wss://astar.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf";
         //String url = "https://astar.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf";
-        String url = "wss://rpc.ankr.com/eth/ws/21b405bbb7f73b129d9fea7c2c5f3281fe7e4208c9a692dceff2084489a00875";
+        //String url = "wss://rpc.ankr.com/eth/ws/21b405bbb7f73b129d9fea7c2c5f3281fe7e4208c9a692dceff2084489a00875";
+        String url = "wss://fantom-mainnet.blastapi.io/74ee1016-d628-4f52-90f5-8b04278fe673";
         Geth web3j = EthContractUtil.getWeb3j(url);
 //        long blk = web3j.ethBlockNumber().send().getBlockNumber().longValue();
 //        System.out.println(blk);
