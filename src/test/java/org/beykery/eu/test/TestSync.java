@@ -56,6 +56,11 @@ public class TestSync {
             }
 
             @Override
+            public void onPendingTransactionHash(String hash, long current, long currentTime) {
+                System.out.println(hash);
+            }
+
+            @Override
             public void onOnceScanOver(long from, long to, long current, long currentTime, long logSize) {
             }
 

@@ -247,7 +247,11 @@ public class LogEventScanner implements Runnable {
             Runnable run = () -> {
                 try {
                     Flowable<PendingTransactionNotification> f = web3j.newPendingTransactionsNotifications();
-                    f.blockingForEach(item -> pendingQueue.offer(item.getParams().getResult()));
+                    f.blockingForEach(item -> {
+                        String hash = item.getParams().getResult();
+                        this.listener.onPendingTransactionHash(hash, this.current, this.currentTime);
+                        pendingQueue.offer(hash);
+                    });
                 } catch (Exception ex) {
                     pending = false;
                 }
