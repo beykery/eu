@@ -12,6 +12,7 @@ import org.web3j.protocol.Web3j;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import static org.beykery.eu.util.EthContractUtil.decodeInputData;
@@ -39,5 +40,11 @@ public class UtilTest {
         Web3j web3j = EthContractUtil.getWeb3j(url);
         long cid = EthContractUtil.chainId(web3j);
         System.out.println(cid);
+    }
+
+    @Test
+    void testTime() {
+        long t = 1697126400000L;
+        System.out.println(new Date(t));
     }
 }

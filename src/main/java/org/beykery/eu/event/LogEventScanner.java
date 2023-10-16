@@ -4,6 +4,7 @@ import io.reactivex.Flowable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.beykery.eu.util.EthContractUtil;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthBlock;
@@ -38,11 +39,16 @@ public class LogEventScanner implements Runnable {
     /**
      * web3j
      */
-    private final Geth web3j;
+    private Geth web3j;
 
     /**
      * scan start
+     * -- GETTER --
+     * scanning
+     *
+     * @return
      */
+    @Getter
     private volatile boolean scanning;
 
     /**
@@ -85,7 +91,7 @@ public class LogEventScanner implements Runnable {
     private final long pendingInterval;
 
     /**
-     * pending max delay
+     * pending max delay, greater than 0 and no longer than blockInterval
      */
     private final long pendingMaxDelay;
 
@@ -233,6 +239,7 @@ public class LogEventScanner implements Runnable {
                 startPending();
             }
             Thread thread = new Thread(this);
+            thread.setName("thread - event");
             thread.start();
         }
         return scanning;
@@ -249,14 +256,18 @@ public class LogEventScanner implements Runnable {
                     Flowable<PendingTransactionNotification> f = web3j.newPendingTransactionsNotifications();
                     f.blockingForEach(item -> {
                         String hash = item.getParams().getResult();
-                        this.listener.onPendingTransactionHash(hash, this.current, this.currentTime);
-                        pendingQueue.offer(hash);
+                        boolean processed = this.listener.onPendingTransactionHash(hash, this.current, this.currentTime);
+                        if (!processed) {
+                            pendingQueue.offer(hash);
+                        }
                     });
-                } catch (Exception ex) {
+                } catch (Throwable ex) {
                     pending = false;
+                    this.listener.onPendingError(ex, this.current, this.currentTime);
                 }
             };
             Thread thread = new Thread(run);
+            thread.setName("thread - pending");
             thread.start();
         }
     }
@@ -277,21 +288,11 @@ public class LogEventScanner implements Runnable {
     }
 
     /**
-     * scanning
-     *
-     * @return
-     */
-    public boolean isScanning() {
-        return scanning;
-    }
-
-    /**
      * @return
      */
     public BigInteger chainId() throws IOException {
         EthChainId cd = web3j.ethChainId().send();
-        BigInteger cid = cd.getChainId();
-        return cid;
+        return cd.getChainId();
     }
 
 
@@ -383,7 +384,7 @@ public class LogEventScanner implements Runnable {
             }
             long next = currentTime * 1000 + blockInterval; // 下次出块时间
             if (pendingInterval >= 0) {
-                while (pendingMaxDelay <= 0 || (System.currentTimeMillis() - next + blockInterval < pendingMaxDelay)) {
+                do {
                     // pending tx
                     List<Transaction> pendingTxs = pendingTxs();
                     if (pendingTxs != null && !pendingTxs.isEmpty()) {
@@ -404,7 +405,7 @@ public class LogEventScanner implements Runnable {
                             }
                         }
                     }
-                }
+                } while (System.currentTimeMillis() - next + blockInterval < pendingMaxDelay);
             }
             // 等待下一个块到来
             long delta = next - System.currentTimeMillis();
@@ -425,8 +426,11 @@ public class LogEventScanner implements Runnable {
                     log.debug("block {} less than current block {}, ignore it .", c[0], current);
                     Thread.sleep(1);
                 }
-            } catch (Exception ex) {
-                log.error("fetch the current block number and timestamp failed");
+            } catch (WebsocketNotConnectedException ex) {
+                log.error("websocket connection broken", ex);
+                this.listener.onWebsocketBroken(ex, current, currentTime);
+            } catch (Throwable e) {
+                log.error("fetch the current block number and timestamp failed", e);
             }
         }
     }
@@ -442,11 +446,11 @@ public class LogEventScanner implements Runnable {
         if (pending) {
             int batchSize = pendingBatchSize <= 0 ? 50 : pendingBatchSize;
             List<String> hash = new ArrayList<>();
-            while (!pendingQueue.isEmpty() && hash.size() < batchSize * 2) {
+            while (!pendingQueue.isEmpty()) {
                 hash.add(pendingQueue.remove());
             }
             if (!hash.isEmpty()) {
-                List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, hash, pendingParallel <= 0 ? 3 : pendingParallel, batchSize);
+                List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, hash, pendingParallel <= 0 ? 3 : pendingParallel, 1);
                 return txs;
             } else {
                 return Collections.EMPTY_LIST;
@@ -466,4 +470,11 @@ public class LogEventScanner implements Runnable {
         }
     }
 
+    /**
+     * 重新连接
+     */
+    public void reconnect(Geth web3j) {
+        this.web3j = web3j;
+        this.startPending();
+    }
 }

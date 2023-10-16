@@ -21,21 +21,32 @@ public class PendingTest {
         //String url = "https://eth-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf";
         //String url = "wss://astar.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf";
         //String url = "https://astar.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf";
-        String url = "wss://rpc.ankr.com/eth/ws/21b405bbb7f73b129d9fea7c2c5f3281fe7e4208c9a692dceff2084489a00875";
+        //String url = "wss://rpc.ankr.com/eth/ws/21b405bbb7f73b129d9fea7c2c5f3281fe7e4208c9a692dceff2084489a00875";
+        String url = "wss://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf";
         Geth web3j = EthContractUtil.getWeb3j(url);
-//        long blk = web3j.ethBlockNumber().send().getBlockNumber().longValue();
-//        System.out.println(blk);
-//        long id = EthContractUtil.chainId(web3j);
-//        System.out.println(id);
-        try {
-            Flowable<PendingTransactionNotification> f = web3j.newPendingTransactionsNotifications();
-            f.blockingForEach(item -> {
-                System.out.println(item.getParams().getResult());
-            });
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }
-
+        long blk = web3j.ethBlockNumber().send().getBlockNumber().longValue();
+        System.out.println(blk);
+        long id = EthContractUtil.chainId(web3j);
+        System.out.println(id);
+        Thread thread = new Thread(() -> {
+            try {
+                Flowable<PendingTransactionNotification> f = web3j.newPendingTransactionsNotifications();
+                f.blockingForEach(item -> {
+                    System.out.println(item.getParams().getResult());
+                });
+            } catch (Exception ex) {
+                System.out.println(ex);
+            }
+        });
+        thread.start();
+        //
+        Thread.sleep(5000);
+        id = EthContractUtil.chainId(web3j);
+        System.out.println(id);
+        Thread.sleep(5000);
+        blk = web3j.ethBlockNumber().send().getBlockNumber().longValue();
+        System.out.println(blk);
+        Thread.sleep(24 * 3600 * 1000);
 //        BigInteger fid = EthContractUtil.newPendingTransactionFilterId(web3j);
 //        while (true) {
 //            List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, 5, 128);

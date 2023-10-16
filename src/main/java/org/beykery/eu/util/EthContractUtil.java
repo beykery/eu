@@ -1164,17 +1164,28 @@ public class EthContractUtil {
             if (end > ls.size()) {
                 end = ls.size();
             }
-            BatchRequest request = batchRequest(web3j);
-            for (int i = start; i < end; i++) {
-                String hash = ls.get(i);
-                request.add(web3j.ethGetTransactionByHash(hash));
-            }
-            try {
-                BatchResponse response = request.send();
-                List<EthTransaction> responses = (List<EthTransaction>) response.getResponses();
-                return responses;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+            if (end - start > 1) {
+                BatchRequest request = batchRequest(web3j);
+                for (int i = start; i < end; i++) {
+                    String hash = ls.get(i);
+                    request.add(web3j.ethGetTransactionByHash(hash));
+                }
+                try {
+                    BatchResponse response = request.send();
+                    List<EthTransaction> responses = (List<EthTransaction>) response.getResponses();
+                    return responses;
+                } catch (Throwable e) {
+                    log.error("batch ethGetTransactionByHash request error", e);
+                    return null;
+                }
+            } else {
+                try {
+                    EthTransaction ret = web3j.ethGetTransactionByHash(ls.get(start)).send();
+                    return ret.getTransaction().isPresent() ? List.of(ret) : null;
+                } catch (Throwable e) {
+                    log.error("ethGetTransactionByHash request error", e);
+                    return null;
+                }
             }
         }).filter(Objects::nonNull).toList();
         List<org.web3j.protocol.core.methods.response.Transaction> ret = new ArrayList<>();
@@ -1187,17 +1198,19 @@ public class EthContractUtil {
         if (ret.size() != ls.size()) {
             log.warn("{} fetched with {} total pxs", ret.size(), ls.size());
         }
-        ret.sort((t1, t2) -> {
-            BigInteger price1 = t1.getGasPrice();
-            if (price1 == null) {
-                price1 = t1.getMaxFeePerGas();
-            }
-            BigInteger price2 = t2.getGasPrice();
-            if (price2 == null) {
-                price2 = t2.getMaxFeePerGas();
-            }
-            return price2.compareTo(price1);
-        });
+        if (parallel > 1 && group > 1) {
+            ret.sort((t1, t2) -> {
+                BigInteger price1 = t1.getGasPrice();
+                if (price1 == null) {
+                    price1 = t1.getMaxFeePerGas();
+                }
+                BigInteger price2 = t2.getGasPrice();
+                if (price2 == null) {
+                    price2 = t2.getMaxFeePerGas();
+                }
+                return price2.compareTo(price1);
+            });
+        }
         return ret;
     }
 

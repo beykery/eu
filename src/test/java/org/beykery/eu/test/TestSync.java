@@ -3,6 +3,7 @@ package org.beykery.eu.test;
 import org.beykery.eu.event.BaseScanner;
 import org.beykery.eu.event.LogEvent;
 import org.beykery.eu.util.EthContractUtil;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.junit.jupiter.api.Test;
 import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Event;
@@ -15,6 +16,7 @@ import org.web3j.tx.ReadonlyTransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
 
 import java.math.BigInteger;
+import java.net.ConnectException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,7 +33,14 @@ public class TestSync {
     );
 
     @Test
-    void syncTest() throws InterruptedException {
+    void syncTest() throws InterruptedException, ConnectException {
+        String contract = "0x67d6859e6C7bee08739A5125EC9CD9cd1291b181";
+        String[] nodes = new String[]{
+                "wss://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
+                // "https://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
+        };
+        Geth web3j = EthContractUtil.getWeb3j(nodes[0]);
+        TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
 
         BaseScanner scanner = new BaseScanner() {
             @Override
@@ -56,8 +65,14 @@ public class TestSync {
             }
 
             @Override
-            public void onPendingTransactionHash(String hash, long current, long currentTime) {
+            public boolean onPendingTransactionHash(String hash, long current, long currentTime) {
                 System.out.println(hash);
+                return false;
+            }
+
+            @Override
+            public void onPendingError(Throwable ex, long current, long currentTime) {
+
             }
 
             @Override
@@ -75,19 +90,20 @@ public class TestSync {
             }
 
             @Override
+            public void onWebsocketBroken(WebsocketNotConnectedException ex, long current, long currentTime) {
+                try {
+                    Geth web3j = EthContractUtil.getWeb3j(nodes[0]);
+                    this.scanner.reconnect(web3j);
+                } catch (Exception exception) {
+                    System.out.println(exception);
+                }
+            }
+
+            @Override
             public boolean reverse() {
                 return false;
             }
         };
-        //String contract = "0xd7949d18f0d2Aa402fD2F0edcDCeA9d5a4B3712E";
-        String contract = "0x786dFc0FCB898575805823301B713baf05CDc93c";
-        String[] nodes = new String[]{
-                //"https://nodes.vefinetwork.org/bitgert"
-                "https://api.harmony.one",
-                "https://harmony-0-rpc.gateway.pokt.network",
-        };
-        Geth web3j = EthContractUtil.getWeb3j(Arrays.asList(nodes));
-        TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
 
         scanner.start(
                 web3j,
@@ -96,7 +112,7 @@ public class TestSync {
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
                     return ret;
                 },
-                2000,
+                4000,
                 100,
                 4000,
                 3,

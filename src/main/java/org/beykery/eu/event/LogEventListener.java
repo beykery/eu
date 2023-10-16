@@ -1,5 +1,6 @@
 package org.beykery.eu.event;
 
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.web3j.protocol.core.methods.response.Transaction;
 
 import java.util.List;
@@ -32,7 +33,15 @@ public interface LogEventListener {
      * @param current
      * @param currentTime
      */
-    void onPendingTransactionHash(String hash, long current, long currentTime);
+    boolean onPendingTransactionHash(String hash, long current, long currentTime);
+
+    /**
+     * pending error
+     *
+     * @param current
+     * @param currentTime
+     */
+    void onPendingError(Throwable ex, long current, long currentTime);
 
     /**
      * 扫描一段结束
@@ -57,10 +66,13 @@ public interface LogEventListener {
      */
     void onError(Throwable ex, long from, long to, long current, long currentTime);
 
+    void onWebsocketBroken(WebsocketNotConnectedException ex, long current, long currentTime);
+
     /**
      * 事件顺序是否翻转
      *
      * @return
      */
     boolean reverse();
+
 }
