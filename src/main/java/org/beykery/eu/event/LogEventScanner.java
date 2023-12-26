@@ -42,6 +42,11 @@ public class LogEventScanner implements Runnable {
     private Geth web3j;
 
     /**
+     * for pending transactions
+     */
+    private Geth pxWeb3j;
+
+    /**
      * scan start
      * -- GETTER --
      * scanning
@@ -175,6 +180,7 @@ public class LogEventScanner implements Runnable {
      */
     public LogEventScanner(
             Geth web3j,
+            Geth pxWeb3j,
             long blockInterval,
             long pendingInterval,
             long pendingMaxDelay,
@@ -186,6 +192,7 @@ public class LogEventScanner implements Runnable {
             LogEventListener listener
     ) {
         this.web3j = web3j;
+        this.pxWeb3j = pxWeb3j == null ? web3j : pxWeb3j;
         this.blockInterval = blockInterval;
         this.listener = listener;
         this.maxRetry = maxRetry;
@@ -253,7 +260,7 @@ public class LogEventScanner implements Runnable {
             pending = true;
             Runnable run = () -> {
                 try {
-                    Flowable<PendingTransactionNotification> f = web3j.newPendingTransactionsNotifications();
+                    Flowable<PendingTransactionNotification> f = pxWeb3j.newPendingTransactionsNotifications();
                     f.blockingForEach(item -> {
                         String hash = item.getParams().getResult();
                         boolean processed = this.listener.onPendingTransactionHash(hash, this.current, this.currentTime);
@@ -261,10 +268,15 @@ public class LogEventScanner implements Runnable {
                             pendingQueue.offer(hash);
                         }
                     });
+                } catch (WebsocketNotConnectedException ex) {
+                    pending = false;
+                    log.error("websocket connection broken", ex);
+                    this.listener.onWebsocketBroken(ex, current, currentTime);
                 } catch (Throwable ex) {
                     pending = false;
                     this.listener.onPendingError(ex, this.current, this.currentTime);
                 }
+                log.error("pending quited. ");
             };
             Thread thread = new Thread(run);
             thread.setName("thread - pending");
@@ -390,6 +402,7 @@ public class LogEventScanner implements Runnable {
                     if (pendingTxs != null && !pendingTxs.isEmpty()) {
                         listener.onPendingTransactions(pendingTxs, current, currentTime);
                     }
+
                     long now = System.currentTimeMillis();
                     if (now < next) {
                         long maxSleep = next - now;
