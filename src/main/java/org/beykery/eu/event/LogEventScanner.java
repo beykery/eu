@@ -460,14 +460,12 @@ public class LogEventScanner implements Runnable {
      */
     private List<Transaction> pendingTxs() {
         if (pending) {
-            int batchSize = pendingBatchSize <= 0 ? 50 : pendingBatchSize;
             List<String> hash = new ArrayList<>();
             while (!pendingQueue.isEmpty()) {
                 hash.add(pendingQueue.remove());
             }
             if (!hash.isEmpty()) {
-                List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, hash, pendingParallel <= 0 ? 3 : pendingParallel, 1);
-                return txs;
+                return EthContractUtil.pendingTransactions(pxWeb3j, hash, pendingParallel <= 0 ? 3 : pendingParallel, 1);
             } else {
                 return Collections.EMPTY_LIST;
             }
@@ -476,8 +474,7 @@ public class LogEventScanner implements Runnable {
                 if (fid == null) {
                     fid = EthContractUtil.newPendingTransactionFilterId(web3j);
                 }
-                List<Transaction> txs = EthContractUtil.pendingTransactions(web3j, fid, pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize <= 0 ? 50 : pendingBatchSize);
-                return txs;
+                return EthContractUtil.pendingTransactions(web3j, fid, pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize <= 0 ? 50 : pendingBatchSize);
             } catch (Exception ex) {
                 log.error("fetch pending transactions error", ex);
                 fid = null;
@@ -490,7 +487,7 @@ public class LogEventScanner implements Runnable {
      * 重新连接
      */
     public void reconnect(Geth web3j) {
-        this.web3j = web3j;
+        this.pxWeb3j = web3j;
         this.startPending();
     }
 }
