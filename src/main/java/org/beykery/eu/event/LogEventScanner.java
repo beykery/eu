@@ -199,7 +199,7 @@ public class LogEventScanner implements Runnable {
         this.retryInterval = retryInterval;
         this.logFromTx = logFromTx;
         this.pendingInterval = pendingInterval;
-        this.pendingMaxDelay = pendingMaxDelay;
+        this.pendingMaxDelay = pendingMaxDelay <= 0 ? blockInterval : pendingMaxDelay;
         this.pendingParallel = pendingParallel;
         this.pendingBatchSize = pendingBatchSize;
         this.pendingQueue = new LinkedBlockingDeque<>();
@@ -421,7 +421,7 @@ public class LogEventScanner implements Runnable {
                             }
                         }
                     }
-                } while (System.currentTimeMillis() - next + blockInterval < pendingMaxDelay);
+                } while (System.currentTimeMillis() - next + blockInterval < Math.min(pendingMaxDelay, blockInterval));
             }
             // 等待下一个块到来
             long delta = next - System.currentTimeMillis();
