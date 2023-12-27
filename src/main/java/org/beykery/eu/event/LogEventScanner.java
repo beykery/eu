@@ -253,6 +253,11 @@ public class LogEventScanner implements Runnable {
     }
 
     /**
+     * lock for pending txs
+     */
+    private static final Object PX_LOCK = new Object();
+
+    /**
      * 尝试启动pending
      */
     public void startPending() {
@@ -266,6 +271,9 @@ public class LogEventScanner implements Runnable {
                         boolean processed = this.listener.onPendingTransactionHash(hash, this.current, this.currentTime);
                         if (!processed) {
                             pendingQueue.offer(hash);
+                            synchronized (PX_LOCK) {
+                                PX_LOCK.notify();
+                            }
                         }
                     });
                 } catch (WebsocketNotConnectedException ex) {
@@ -402,19 +410,14 @@ public class LogEventScanner implements Runnable {
                     if (pendingTxs != null && !pendingTxs.isEmpty()) {
                         listener.onPendingTransactions(pendingTxs, current, currentTime);
                     }
-
                     long now = System.currentTimeMillis();
                     if (now < next) {
                         long maxSleep = next - now;
-                        if (pendingInterval > 0) {
+                        synchronized (PX_LOCK) {
                             try {
-                                Thread.sleep(Math.min(pendingInterval, maxSleep));
-                            } catch (Exception ex) {
-                            }
-                        } else {
-                            try {
-                                Thread.sleep(1);
-                            } catch (Exception ex) {
+                                PX_LOCK.wait(maxSleep);
+                            } catch (Throwable th) {
+                                log.error("PX_LOCK wait error", th);
                             }
                         }
                     }

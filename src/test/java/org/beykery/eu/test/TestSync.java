@@ -107,6 +107,7 @@ public class TestSync {
 
         scanner.start(
                 web3j,
+                web3j,
                 () -> {
                     Tuple2<BigInteger, BigInteger> t2 = testContract.currentBlockInfo().send();
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};

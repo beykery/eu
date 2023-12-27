@@ -1,5 +1,6 @@
 package org.beykery.eu.event;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.protocol.geth.Geth;
@@ -24,12 +25,14 @@ public abstract class BaseScanner implements LogEventListener {
     /**
      * scan
      */
+    @Getter
     protected LogEventScanner scanner;
 
     /**
      * start scan
      *
      * @param web3j                web3j
+     * @param pxWeb3j              for pending tx websocket connection
      * @param currentBlockProvider current block provider
      * @param blockInterval        block interval
      * @param pendingInterval      pending tx interval
@@ -48,6 +51,7 @@ public abstract class BaseScanner implements LogEventListener {
      */
     public boolean start(
             Geth web3j,
+            Geth pxWeb3j,
             CurrentBlockProvider currentBlockProvider,
             long blockInterval,
             long pendingInterval,
@@ -66,7 +70,7 @@ public abstract class BaseScanner implements LogEventListener {
         if (scanner == null) {
             this.from = from;
             this.contracts = contracts;
-            scanner = new LogEventScanner(web3j, blockInterval, pendingInterval, pendingMaxDelay, pendingParallel, pendingBatchSize, maxRetry, retryInterval, logFromTx, this);
+            scanner = new LogEventScanner(web3j, pxWeb3j, blockInterval, pendingInterval, pendingMaxDelay, pendingParallel, pendingBatchSize, maxRetry, retryInterval, logFromTx, this);
             return scanner.start(this.from, events, contracts == null || contracts.length == 0 ? Collections.EMPTY_LIST : Arrays.asList(contracts), currentBlockProvider, sensitivity, step);
         }
         return false;
@@ -88,12 +92,4 @@ public abstract class BaseScanner implements LogEventListener {
         return scanner != null && scanner.isScanning();
     }
 
-    /**
-     * the inner scanner
-     *
-     * @return
-     */
-    public LogEventScanner getScanner() {
-        return this.scanner;
-    }
 }
