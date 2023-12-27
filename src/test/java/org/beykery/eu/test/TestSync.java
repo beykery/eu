@@ -34,9 +34,12 @@ public class TestSync {
 
     @Test
     void syncTest() throws InterruptedException, ConnectException {
-        String contract = "0x67d6859e6C7bee08739A5125EC9CD9cd1291b181";
+        //String contract = "0x67d6859e6C7bee08739A5125EC9CD9cd1291b181";
+        String contract = "0x91e8eef3BdBED613cF06E37249769ac571fa83ce";
         String[] nodes = new String[]{
-                "wss://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
+                "https://a.api.s0.t.hmny.io",
+                "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/5a36585dcdb34ceebb1d891ed6c3f50c"
+                //"wss://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
                 // "https://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
         };
         Geth web3j = EthContractUtil.getWeb3j(nodes[0]);
@@ -107,7 +110,7 @@ public class TestSync {
 
         scanner.start(
                 web3j,
-                web3j,
+                EthContractUtil.getWeb3j(nodes[1]),
                 () -> {
                     Tuple2<BigInteger, BigInteger> t2 = testContract.currentBlockInfo().send();
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
