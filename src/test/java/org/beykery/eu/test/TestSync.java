@@ -38,11 +38,13 @@ public class TestSync {
         String contract = "0x91e8eef3BdBED613cF06E37249769ac571fa83ce";
         String[] nodes = new String[]{
                 "https://a.api.s0.t.hmny.io",
+                "https://endpoints.omniatech.io/v1/harmony/mainnet/publicrpc",
+                "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/7377f57783d54f00b1f85f9e5be9c4f9",
                 "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/5a36585dcdb34ceebb1d891ed6c3f50c"
                 //"wss://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
                 // "https://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
         };
-        Geth web3j = EthContractUtil.getWeb3j(nodes[0]);
+        Geth web3j = EthContractUtil.getWeb3j(nodes[1]);
         TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
 
         BaseScanner scanner = new BaseScanner() {
@@ -75,7 +77,7 @@ public class TestSync {
 
             @Override
             public void onPendingError(Throwable ex, long current, long currentTime) {
-
+                ex.printStackTrace();
             }
 
             @Override
@@ -89,13 +91,14 @@ public class TestSync {
 
             @Override
             public void onError(Throwable ex, long from, long to, long current, long currentTime) {
-
+                ex.printStackTrace();
             }
 
             @Override
             public void onWebsocketBroken(WebsocketNotConnectedException ex, long current, long currentTime) {
                 try {
-                    Geth web3j = EthContractUtil.getWeb3j(nodes[0]);
+                    ex.printStackTrace();
+                    Geth web3j = EthContractUtil.getWeb3j(nodes[1]);
                     this.scanner.reconnect(web3j);
                 } catch (Exception exception) {
                     System.out.println(exception);
@@ -110,7 +113,7 @@ public class TestSync {
 
         scanner.start(
                 web3j,
-                EthContractUtil.getWeb3j(nodes[1]),
+                EthContractUtil.getWeb3j(nodes[2]),
                 () -> {
                     Tuple2<BigInteger, BigInteger> t2 = testContract.currentBlockInfo().send();
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
