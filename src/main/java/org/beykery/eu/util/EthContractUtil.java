@@ -91,6 +91,18 @@ public class EthContractUtil {
     }
 
     /**
+     * contract code
+     * @param web3j
+     * @param address
+     * @return
+     * @throws IOException
+     */
+    public static String getCode(Web3j web3j, String address) throws IOException {
+        EthGetCode code = web3j.ethGetCode(address, DefaultBlockParameter.valueOf("latest")).send();
+        return code.getCode();
+    }
+
+    /**
      * transaction
      *
      * @param web3j

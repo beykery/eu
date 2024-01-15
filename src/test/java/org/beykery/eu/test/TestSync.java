@@ -15,6 +15,7 @@ import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tx.ReadonlyTransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.net.ConnectException;
 import java.util.Arrays;
@@ -134,5 +135,15 @@ public class TestSync {
                 null
         );
         Thread.sleep(24 * 3600 * 1000);
+    }
+
+    @Test
+    void testCode() throws IOException {
+        String contract = "0x91e8eef3BdBED613cF06E37249769ac571fa83ce";
+        //String url = "https://endpoints.omniatech.io/v1/harmony/mainnet/publicrpc";
+        String url = "https://a.api.s0.t.hmny.io";
+        Geth web3j = EthContractUtil.getWeb3j(url);
+        String code = EthContractUtil.getCode(web3j, contract);
+        System.out.println(code);
     }
 }
