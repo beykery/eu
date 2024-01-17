@@ -46,7 +46,7 @@ public class TestSync {
                 //"wss://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
                 // "https://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
         };
-        Geth web3j = EthContractUtil.getWeb3j(nodes[1]);
+        Geth web3j = EthContractUtil.getWeb3j(nodes[0]);
         TestContract testContract = TestContract.load(contract, web3j, new ReadonlyTransactionManager(web3j, EthContractUtil.DEFAULT_FROM), new DefaultGasProvider());
 
         BaseScanner scanner = new BaseScanner() {
@@ -115,13 +115,13 @@ public class TestSync {
 
         scanner.start(
                 web3j,
-                EthContractUtil.getWeb3j(nodes[2]),
+                EthContractUtil.getWeb3j("wss://go.getblock.io/268c00869f03478083024101330bef2c"),
                 () -> {
                     Tuple2<BigInteger, BigInteger> t2 = testContract.currentBlockInfo().send();
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
                     return ret;
                 },
-                4000,
+                2000,
                 100,
                 4000,
                 3,

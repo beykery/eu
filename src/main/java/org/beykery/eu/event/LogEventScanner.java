@@ -199,7 +199,7 @@ public class LogEventScanner implements Runnable {
         this.pendingInterval = pendingInterval;
         this.pendingMaxDelay = pendingMaxDelay <= 0 ? blockInterval : pendingMaxDelay;
         this.pendingParallel = pendingParallel;
-        this.pendingBatchSize = pendingBatchSize;
+        this.pendingBatchSize = pendingBatchSize <= 0 ? 1 : pendingBatchSize;
         this.pendingQueue = new LinkedBlockingDeque<>();
     }
 
@@ -464,12 +464,12 @@ public class LogEventScanner implements Runnable {
             Map<String, PendingHash> hash = new HashMap<>();
             while (!pendingQueue.isEmpty()) {
                 PendingHash ph = pendingQueue.remove();
-                hash.put(ph.getHash(), ph);
+                hash.put(ph.getHash().toLowerCase(), ph);
             }
             if (!hash.isEmpty()) {
-                List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(pxWeb3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, 1);
+                List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(pxWeb3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize);
                 return txs.stream().map(item -> {
-                    PendingHash ph = hash.get(item.getHash());
+                    PendingHash ph = hash.get(item.getHash().toLowerCase());
                     return new PendingTransaction(item, ph.getTime(), ph.isFromWs());
                 }).toList();
             } else {
