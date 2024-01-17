@@ -467,10 +467,15 @@ public class LogEventScanner implements Runnable {
                 hash.put(ph.getHash().toLowerCase(), ph);
             }
             if (!hash.isEmpty()) {
-                List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(pxWeb3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize);
+                List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(web3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize);
                 return txs.stream().map(item -> {
-                    PendingHash ph = hash.get(item.getHash().toLowerCase());
-                    return new PendingTransaction(item, ph.getTime(), ph.isFromWs());
+                    String h = item.getHash().toLowerCase();
+                    PendingHash ph = hash.get(h);
+                    if (ph == null) {
+                        return new PendingTransaction(item, System.currentTimeMillis(), true);
+                    } else {
+                        return new PendingTransaction(item, ph.getTime(), ph.isFromWs());
+                    }
                 }).toList();
             } else {
                 return Collections.EMPTY_LIST;
@@ -480,7 +485,7 @@ public class LogEventScanner implements Runnable {
                 if (fid == null) {
                     fid = EthContractUtil.newPendingTransactionFilterId(web3j);
                 }
-                return EthContractUtil.pendingTransactions(web3j, fid, pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize <= 0 ? 50 : pendingBatchSize);
+                return EthContractUtil.pendingTransactions(web3j, fid, pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize);
             } catch (Exception ex) {
                 log.error("fetch pending transactions error", ex);
                 fid = null;

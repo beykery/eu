@@ -1188,8 +1188,7 @@ public class EthContractUtil {
                 }
                 try {
                     BatchResponse response = request.send();
-                    List<EthTransaction> responses = (List<EthTransaction>) response.getResponses();
-                    return responses;
+                    return (List<EthTransaction>) response.getResponses();
                 } catch (Throwable e) {
                     log.error("batch ethGetTransactionByHash request error", e);
                     return null;
