@@ -1148,7 +1148,7 @@ public class EthContractUtil {
         if (ls != null && !ls.isEmpty()) {
             List<org.web3j.protocol.core.methods.response.Transaction> txs = pendingTransactions(web3j, ls.stream().map(item -> item.get().toString()).collect(Collectors.toList()), parallel, batchSize);
             long now = System.currentTimeMillis();
-            return txs.stream().map(item -> new PendingTransaction(item, now)).toList();
+            return txs.stream().map(item -> new PendingTransaction(item, now, false)).toList();
         } else {
             return Collections.EMPTY_LIST;
         }

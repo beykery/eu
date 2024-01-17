@@ -268,7 +268,7 @@ public class LogEventScanner implements Runnable {
                         String hash = item.getParams().getResult();
                         boolean processed = this.listener.onPendingTransactionHash(hash, this.current, this.currentTime);
                         if (!processed) {
-                            pendingQueue.offer(new PendingHash(hash, System.currentTimeMillis()));
+                            pendingQueue.offer(new PendingHash(hash, System.currentTimeMillis(), true));
                             synchronized (PX_LOCK) {
                                 PX_LOCK.notifyAll();
                             }
@@ -468,7 +468,10 @@ public class LogEventScanner implements Runnable {
             }
             if (!hash.isEmpty()) {
                 List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(pxWeb3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, 1);
-                return txs.stream().map(item -> new PendingTransaction(item, hash.get(item.getHash()).getTime())).toList();
+                return txs.stream().map(item -> {
+                    PendingHash ph = hash.get(item.getHash());
+                    return new PendingTransaction(item, ph.getTime(), ph.isFromWs());
+                }).toList();
             } else {
                 return Collections.EMPTY_LIST;
             }

@@ -18,4 +18,8 @@ public class PendingTransaction {
      * time of appearance
      */
     private long time;
+    /**
+     * from websocket
+     */
+    private boolean fromWs;
 }
