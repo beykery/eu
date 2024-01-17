@@ -467,7 +467,7 @@ public class LogEventScanner implements Runnable {
                 hash.put(ph.getHash().toLowerCase(), ph);
             }
             if (!hash.isEmpty()) {
-                List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(web3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize);
+                List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(pxWeb3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, pendingBatchSize);
                 return txs.stream().map(item -> {
                     String h = item.getHash().toLowerCase();
                     PendingHash ph = hash.get(h);
