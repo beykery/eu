@@ -15,9 +15,7 @@ import org.web3j.protocol.websocket.events.PendingTransactionNotification;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
 
 /**
@@ -63,7 +61,7 @@ public class LogEventScanner implements Runnable {
     /**
      * queue for hash
      */
-    private final LinkedBlockingDeque<String> pendingQueue;
+    private final LinkedBlockingDeque<PendingHash> pendingQueue;
 
     /**
      * 事件
@@ -270,9 +268,9 @@ public class LogEventScanner implements Runnable {
                         String hash = item.getParams().getResult();
                         boolean processed = this.listener.onPendingTransactionHash(hash, this.current, this.currentTime);
                         if (!processed) {
-                            pendingQueue.offer(hash);
+                            pendingQueue.offer(new PendingHash(hash, System.currentTimeMillis()));
                             synchronized (PX_LOCK) {
-                                PX_LOCK.notify();
+                                PX_LOCK.notifyAll();
                             }
                         }
                     });
@@ -406,7 +404,7 @@ public class LogEventScanner implements Runnable {
             if (pendingInterval >= 0) {
                 do {
                     // pending tx
-                    List<Transaction> pendingTxs = pendingTxs();
+                    List<PendingTransaction> pendingTxs = pendingTxs();
                     if (pendingTxs != null && !pendingTxs.isEmpty()) {
                         listener.onPendingTransactions(pendingTxs, current, currentTime);
                     }
@@ -421,14 +419,17 @@ public class LogEventScanner implements Runnable {
                             }
                         }
                     }
-                } while (System.currentTimeMillis() - next + blockInterval < Math.min(pendingMaxDelay, blockInterval));
+                } while (System.currentTimeMillis() - next + blockInterval < pendingMaxDelay);
             }
             // 等待下一个块到来
             long delta = next - System.currentTimeMillis();
             if (delta > 0) {
-                try {
-                    Thread.sleep(delta);
-                } catch (Exception x) {
+                synchronized (PX_LOCK) {
+                    try {
+                        PX_LOCK.wait(delta);
+                    } catch (Throwable th) {
+                        log.error("PX_LOCK wait error", th);
+                    }
                 }
             }
             // 求当前最高块
@@ -458,14 +459,16 @@ public class LogEventScanner implements Runnable {
      *
      * @return
      */
-    private List<Transaction> pendingTxs() {
+    private List<PendingTransaction> pendingTxs() {
         if (pending) {
-            List<String> hash = new ArrayList<>();
+            Map<String, PendingHash> hash = new HashMap<>();
             while (!pendingQueue.isEmpty()) {
-                hash.add(pendingQueue.remove());
+                PendingHash ph = pendingQueue.remove();
+                hash.put(ph.getHash(), ph);
             }
             if (!hash.isEmpty()) {
-                return EthContractUtil.pendingTransactions(pxWeb3j, hash, pendingParallel <= 0 ? 3 : pendingParallel, 1);
+                List<org.web3j.protocol.core.methods.response.Transaction> txs = EthContractUtil.pendingTransactions(pxWeb3j, new ArrayList<>(hash.keySet()), pendingParallel <= 0 ? 3 : pendingParallel, 1);
+                return txs.stream().map(item -> new PendingTransaction(item, hash.get(item.getHash()).getTime())).toList();
             } else {
                 return Collections.EMPTY_LIST;
             }

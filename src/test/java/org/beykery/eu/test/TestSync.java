@@ -2,6 +2,7 @@ package org.beykery.eu.test;
 
 import org.beykery.eu.event.BaseScanner;
 import org.beykery.eu.event.LogEvent;
+import org.beykery.eu.event.PendingTransaction;
 import org.beykery.eu.util.EthContractUtil;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.junit.jupiter.api.Test;
@@ -63,7 +64,7 @@ public class TestSync {
             }
 
             @Override
-            public void onPendingTransactions(List<Transaction> txs, long current, long currentTime) {
+            public void onPendingTransactions(List<PendingTransaction> txs, long current, long currentTime) {
                 System.out.println("pending txs : " + txs.size());
                 long elapsed = System.currentTimeMillis() - currentTime * 1000;
                 System.out.println("pending txs elapsed: " + elapsed);

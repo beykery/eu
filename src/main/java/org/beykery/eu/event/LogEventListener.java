@@ -24,7 +24,7 @@ public interface LogEventListener {
      * @param current
      * @param currentTime
      */
-    void onPendingTransactions(List<Transaction> txs, long current, long currentTime);
+    void onPendingTransactions(List<PendingTransaction> txs, long current, long currentTime);
 
     /**
      * pending tx hash

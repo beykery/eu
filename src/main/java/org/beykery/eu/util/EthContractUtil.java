@@ -4,6 +4,7 @@ import com.github.ferstl.streams.ParallelIntStreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.beykery.eu.event.LogEvent;
+import org.beykery.eu.event.PendingTransaction;
 import org.web3j.abi.*;
 import org.web3j.abi.datatypes.*;
 import org.web3j.abi.datatypes.generated.Bytes32;
@@ -92,6 +93,7 @@ public class EthContractUtil {
 
     /**
      * contract code
+     *
      * @param web3j
      * @param address
      * @return
@@ -1115,7 +1117,7 @@ public class EthContractUtil {
      * @return
      * @throws Exception
      */
-    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId) throws Exception {
+    public static List<PendingTransaction> pendingTransactions(Web3j web3j, BigInteger filterId) throws Exception {
         return pendingTransactions(web3j, filterId, 3, 50);
     }
 
@@ -1128,7 +1130,7 @@ public class EthContractUtil {
      * @return
      * @throws Exception
      */
-    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel) throws Exception {
+    public static List<PendingTransaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel) throws Exception {
         return pendingTransactions(web3j, filterId, parallel, 50);
     }
 
@@ -1140,11 +1142,13 @@ public class EthContractUtil {
      * @param parallel
      * @return
      */
-    public static List<org.web3j.protocol.core.methods.response.Transaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel, int batchSize) throws Exception {
+    public static List<PendingTransaction> pendingTransactions(Web3j web3j, BigInteger filterId, int parallel, int batchSize) throws Exception {
         EthLog logs = web3j.ethGetFilterChanges(filterId).send();
         List<EthLog.LogResult> ls = logs.getLogs();
         if (ls != null && !ls.isEmpty()) {
-            return pendingTransactions(web3j, ls.stream().map(item -> item.get().toString()).collect(Collectors.toList()), parallel, batchSize);
+            List<org.web3j.protocol.core.methods.response.Transaction> txs = pendingTransactions(web3j, ls.stream().map(item -> item.get().toString()).collect(Collectors.toList()), parallel, batchSize);
+            long now = System.currentTimeMillis();
+            return txs.stream().map(item -> new PendingTransaction(item, now)).toList();
         } else {
             return Collections.EMPTY_LIST;
         }
