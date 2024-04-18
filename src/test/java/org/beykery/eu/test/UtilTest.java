@@ -6,10 +6,12 @@ import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.DynamicArray;
 import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.Uint;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.ConnectException;
 import java.util.Arrays;
 import java.util.Date;
@@ -46,5 +48,14 @@ public class UtilTest {
     void testTime() {
         long t = 1697126400000L;
         System.out.println(new Date(t));
+    }
+
+    @Test
+    void testMethodId() {
+        String mid = EthContractUtil.buildMethodId("transfer", Arrays.asList(new Address(EthContractUtil.DEFAULT_FROM), new Uint(BigInteger.valueOf(123))));
+        System.out.println(mid);
+
+        mid = EthContractUtil.buildMethodId("transferFrom", Arrays.asList(new Address(EthContractUtil.DEFAULT_FROM), new Address(EthContractUtil.DEFAULT_FROM), new Uint(BigInteger.valueOf(123))));
+        System.out.println(mid);
     }
 }
