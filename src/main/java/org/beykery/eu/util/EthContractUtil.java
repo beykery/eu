@@ -1215,15 +1215,19 @@ public class EthContractUtil {
         }
         if (parallel > 1 && group > 1) {
             ret.sort((t1, t2) -> {
-                BigInteger price1 = t1.getGasPrice();
-                if (price1 == null) {
-                    price1 = t1.getMaxFeePerGas();
+                try {
+                    BigInteger price1 = t1.getGasPrice();
+                    if (price1 == null) {
+                        price1 = t1.getMaxFeePerGas();
+                    }
+                    BigInteger price2 = t2.getGasPrice();
+                    if (price2 == null) {
+                        price2 = t2.getMaxFeePerGas();
+                    }
+                    return price2.compareTo(price1);
+                } catch (Throwable e) {
+                    return 0;
                 }
-                BigInteger price2 = t2.getGasPrice();
-                if (price2 == null) {
-                    price2 = t2.getMaxFeePerGas();
-                }
-                return price2.compareTo(price1);
             });
         }
         return ret;
