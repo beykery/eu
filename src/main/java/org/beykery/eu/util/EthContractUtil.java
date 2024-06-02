@@ -1215,22 +1215,30 @@ public class EthContractUtil {
         }
         if (parallel > 1 && group > 1) {
             ret.sort((t1, t2) -> {
-                try {
-                    BigInteger price1 = t1.getGasPrice();
-                    if (price1 == null) {
-                        price1 = t1.getMaxFeePerGas();
-                    }
-                    BigInteger price2 = t2.getGasPrice();
-                    if (price2 == null) {
-                        price2 = t2.getMaxFeePerGas();
-                    }
-                    return price2.compareTo(price1);
-                } catch (Throwable e) {
-                    return 0;
-                }
+                BigInteger price1 = price(t1);
+                BigInteger price2 = price(t2);
+                return price2.compareTo(price1);
             });
         }
         return ret;
+    }
+
+    /**
+     * price of tx
+     *
+     * @param tx
+     * @return
+     */
+    private static BigInteger price(org.web3j.protocol.core.methods.response.Transaction tx) {
+        try {
+            BigInteger price = tx.getGasPrice();
+            if (price == null) {
+                price = tx.getMaxFeePerGas();
+            }
+            return price == null ? BigInteger.ZERO : price;
+        } catch (Throwable th) {
+            return BigInteger.ZERO;
+        }
     }
 
     /**
