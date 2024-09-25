@@ -497,7 +497,7 @@ public class EthContractUtil {
      */
     public static Geth getWeb3j() {
         String nodeUrl = "https://mainnet.infura.io/v3/ac6e4a09bef34cf494d1941d1bc561b6";
-        Geth web3j = EuWeb3j.build(new HttpService(nodeUrl));
+        Geth web3j = EuGeth.build(new HttpService(nodeUrl));
         return web3j;
     }
 
@@ -509,7 +509,7 @@ public class EthContractUtil {
      */
     public static Geth getWeb3j(List<String> nodes) {
         Web3jService ws = new EuHttpService(nodes);
-        Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuGeth.build(ws);
         return web3j;
     }
 
@@ -527,7 +527,7 @@ public class EthContractUtil {
         } else {
             ws = new EuHttpService(node);
         }
-        Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuGeth.build(ws);
         return web3j;
     }
 
@@ -546,7 +546,7 @@ public class EthContractUtil {
         } else {
             ws = new EuHttpService(node, okClient);
         }
-        Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuGeth.build(ws);
         return web3j;
     }
 
@@ -560,7 +560,7 @@ public class EthContractUtil {
      */
     public static Geth getWeb3j(List<String> nodes, OkHttpClient okClient) {
         Web3jService ws = new EuHttpService(nodes, okClient, false);
-        Geth web3j = EuWeb3j.build(ws);
+        Geth web3j = EuGeth.build(ws);
         return web3j;
     }
 
@@ -1278,7 +1278,7 @@ public class EthContractUtil {
         if (er.getTransactionReceipt().isPresent()) {
             TransactionReceipt receipt = er.getTransactionReceipt().get();
             List<Log> logs = receipt.getLogs();
-            if (logs.size() > 0) {
+            if (!logs.isEmpty()) {
                 Map<String, Event> signatures = new HashMap<>();
                 events.forEach(item -> {
                     String encodedEventSignature = EventEncoder.encode(item);
@@ -1408,7 +1408,7 @@ public class EthContractUtil {
                 Log log = lo.get();
                 return log;
             }).filter(Objects::nonNull).collect(Collectors.toList());
-            if (logs.size() > 0) {
+            if (!logs.isEmpty()) {
                 // ParallelStreamSupport.parallelStream(logs, Streams.POOL)
                 Stream<Log> stream = logs.stream()
                         .filter(item -> {

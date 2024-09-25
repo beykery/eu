@@ -37,12 +37,14 @@ public class TestSync {
     @Test
     void syncTest() throws InterruptedException, ConnectException {
         //String contract = "0x67d6859e6C7bee08739A5125EC9CD9cd1291b181";
-        String contract = "0x91e8eef3BdBED613cF06E37249769ac571fa83ce";
+        //String contract = "0x91e8eef3BdBED613cF06E37249769ac571fa83ce";
+        String contract = "0xDecCfF0273Ec47D913Dd88eAb45d1c00F1be26aF";
         String[] nodes = new String[]{
-                "https://a.api.s0.t.hmny.io",
-                "https://endpoints.omniatech.io/v1/harmony/mainnet/publicrpc",
-                "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/7377f57783d54f00b1f85f9e5be9c4f9",
-                "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/5a36585dcdb34ceebb1d891ed6c3f50c"
+                  "https://rpc.ankr.com/iotex"
+//                "https://a.api.s0.t.hmny.io",
+//                "https://endpoints.omniatech.io/v1/harmony/mainnet/publicrpc",
+//                "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/7377f57783d54f00b1f85f9e5be9c4f9",
+//                "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/5a36585dcdb34ceebb1d891ed6c3f50c"
                 //"wss://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
                 // "https://oktc-mainnet.blastapi.io/344c45b5-7ebb-4c27-820a-b93b0a1ab6bf"
         };
@@ -115,7 +117,8 @@ public class TestSync {
 
         scanner.start(
                 web3j,
-                EthContractUtil.getWeb3j("wss://go.getblock.io/268c00869f03478083024101330bef2c"),
+                null,
+                //EthContractUtil.getWeb3j("wss://go.getblock.io/268c00869f03478083024101330bef2c"),
                 () -> {
                     Tuple2<BigInteger, BigInteger> t2 = testContract.currentBlockInfo().send();
                     long[] ret = new long[]{t2.component1().longValue(), t2.component2().longValue()};
@@ -127,7 +130,7 @@ public class TestSync {
                 3,
                 100,
                 Arrays.asList(SYNC_EVENT),
-                -1,
+                30368396,
                 10,
                 0,
                 2,

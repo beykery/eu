@@ -1,5 +1,7 @@
 package org.beykery.eu.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
 import okio.Buffer;
@@ -15,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -201,7 +204,7 @@ public class EuHttpService extends Service {
             ResponseBody responseBody = response.body();
             if (response.isSuccessful()) {
                 if (responseBody != null) {
-                    return buildInputStream(responseBody);
+                    return buildInputStream(url, responseBody);
                 } else {
                     return null;
                 }
@@ -218,7 +221,7 @@ public class EuHttpService extends Service {
         // Default implementation is empty
     }
 
-    private InputStream buildInputStream(ResponseBody responseBody) throws IOException {
+    private InputStream buildInputStream(String url, ResponseBody responseBody) throws IOException {
         if (includeRawResponse) {
             // we have to buffer the entire input payload, so that after processing
             // it can be re-read and used to populate the rawResponse field.
@@ -243,7 +246,15 @@ public class EuHttpService extends Service {
             return bufferedinputStream;
 
         } else {
-            return new ByteArrayInputStream(responseBody.bytes());
+            byte[] bytes = responseBody.bytes();
+            // 检查下result
+            ObjectMapper mapper = new ObjectMapper();
+            JsonRpcErrorResult err = mapper.readValue(bytes, JsonRpcErrorResult.class);
+            String error = err.getError();
+            if (error != null && !error.isEmpty()) {
+                throw new ClientConnectionException(MessageFormat.format("{0} Invalid response received: {1}", url, error));
+            }
+            return new ByteArrayInputStream(bytes);
         }
     }
 
@@ -284,4 +295,10 @@ public class EuHttpService extends Service {
     @Override
     public void close() throws IOException {
     }
+
+    @Data
+    static class JsonRpcErrorResult {
+        private String error;
+    }
 }
+

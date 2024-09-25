@@ -9,7 +9,6 @@ import org.web3j.abi.datatypes.Event;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.methods.response.EthChainId;
-import org.web3j.protocol.core.methods.response.Transaction;
 import org.web3j.protocol.geth.Geth;
 import org.web3j.protocol.websocket.events.PendingTransactionNotification;
 
