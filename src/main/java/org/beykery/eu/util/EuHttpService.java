@@ -1,8 +1,7 @@
 package org.beykery.eu.util;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Data;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
 import okio.Buffer;
@@ -253,10 +252,12 @@ public class EuHttpService extends Service {
         } else {
             byte[] bytes = responseBody.bytes();
             // 检查下result
-            JsonRpcErrorResult err = mapper.readValue(bytes, JsonRpcErrorResult.class);
-            Object error = err.getError();
-            if (error != null) {
-                throw new ClientConnectionException(MessageFormat.format("{0} Invalid response received: {1}", url, error));
+            JsonNode node = mapper.readTree(bytes);
+            if (!node.isArray()) {
+                JsonNode err = node.get("error");
+                if (err != null) {
+                    throw new ClientConnectionException(MessageFormat.format("{0} Invalid response received: {1}", url, err));
+                }
             }
             return new ByteArrayInputStream(bytes);
         }
@@ -298,12 +299,6 @@ public class EuHttpService extends Service {
 
     @Override
     public void close() throws IOException {
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    static class JsonRpcErrorResult {
-        private Object error;
     }
 }
 
