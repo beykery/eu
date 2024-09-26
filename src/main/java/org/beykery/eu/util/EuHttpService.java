@@ -1,5 +1,6 @@
 package org.beykery.eu.util;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import okhttp3.*;
@@ -32,6 +33,10 @@ public class EuHttpService extends Service {
      * 随机
      */
     private static final Random random = new SecureRandom();
+    /**
+     * mapper
+     */
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Copied from {@link ConnectionSpec#APPROVED_CIPHER_SUITES}.
@@ -248,10 +253,9 @@ public class EuHttpService extends Service {
         } else {
             byte[] bytes = responseBody.bytes();
             // 检查下result
-            ObjectMapper mapper = new ObjectMapper();
             JsonRpcErrorResult err = mapper.readValue(bytes, JsonRpcErrorResult.class);
-            String error = err.getError();
-            if (error != null && !error.isEmpty()) {
+            Object error = err.getError();
+            if (error != null) {
                 throw new ClientConnectionException(MessageFormat.format("{0} Invalid response received: {1}", url, error));
             }
             return new ByteArrayInputStream(bytes);
@@ -297,8 +301,9 @@ public class EuHttpService extends Service {
     }
 
     @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     static class JsonRpcErrorResult {
-        private String error;
+        private Object error;
     }
 }
 

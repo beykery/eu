@@ -10,6 +10,7 @@ import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.generated.Uint112;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.EthTransaction;
 import org.web3j.protocol.core.methods.response.Transaction;
 import org.web3j.protocol.geth.Geth;
 import org.web3j.tuples.generated.Tuple2;
@@ -40,7 +41,7 @@ public class TestSync {
         //String contract = "0x91e8eef3BdBED613cF06E37249769ac571fa83ce";
         String contract = "0xDecCfF0273Ec47D913Dd88eAb45d1c00F1be26aF";
         String[] nodes = new String[]{
-                  "https://rpc.ankr.com/iotex"
+                "https://rpc.ankr.com/iotex"
 //                "https://a.api.s0.t.hmny.io",
 //                "https://endpoints.omniatech.io/v1/harmony/mainnet/publicrpc",
 //                "wss://endpoints.omniatech.io/v1/ws/harmony/mainnet-0/7377f57783d54f00b1f85f9e5be9c4f9",
@@ -149,5 +150,13 @@ public class TestSync {
         Geth web3j = EthContractUtil.getWeb3j(url);
         String code = EthContractUtil.getCode(web3j, contract);
         System.out.println(code);
+    }
+
+    @Test
+    void testErrRpc() throws IOException {
+        String url = "https://rpc.ankr.com/iotex";
+        Geth geth = EthContractUtil.getWeb3j(url);
+        EthTransaction et = geth.ethGetTransactionByHash("xxxxx").send();
+        System.out.println(et);
     }
 }
